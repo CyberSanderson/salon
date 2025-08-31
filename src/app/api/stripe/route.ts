@@ -39,11 +39,17 @@ export async function POST(req: Request) {
       }
     }
     
-    // Handle other events like subscription cancellations later
-
     return NextResponse.json({ received: true })
-  } catch (err: any) {
-    console.error('Webhook Error:', err.message)
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 })
+  } catch (err: unknown) { // <-- FIX: Changed 'any' to 'unknown'
+    // Create a default error message
+    let errorMessage = 'An unknown error occurred in the webhook.';
+    
+    // Check if the error is a standard Error object to safely access its message
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    }
+
+    console.error('Webhook Error:', errorMessage)
+    return new NextResponse(`Webhook Error: ${errorMessage}`, { status: 400 })
   }
 }
