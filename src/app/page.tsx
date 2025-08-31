@@ -24,8 +24,8 @@ export default function HomePage() {
             Tired of Late-Night DMs and Missed Calls?
           </h2>
           <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
-            You're a master of your craft, not a full-time admin. Every moment
-            spent juggling messages is a moment you're not creating beauty or
+            You&apos;re a master of your craft, not a full-time admin. Every moment
+            spent juggling messages is a moment you&apos;re not creating beauty or
             growing your business.
           </p>
 
@@ -107,7 +107,7 @@ export default function HomePage() {
                 After-Hours Stress
               </h3>
               <p className="mt-2 text-gray-500">
-                You can't switch off when booking requests come in at all hours.
+                You can&apos;t switch off when booking requests come in at all hours.
               </p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function HomePage() {
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-gray-800">
-            Your Salon's 24/7 Automated Receptionist
+            Your Salon&apos;s 24/7 Automated Receptionist
           </h2>
           <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
             Free up your time and watch your calendar fill itself.
@@ -174,7 +174,7 @@ export default function HomePage() {
             Simple, Transparent Pricing
           </h2>
           <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
-            Choose the plan that's right for your business. No hidden fees, ever.
+            Choose the plan that&apos;s right for your business. No hidden fees, ever.
           </p>
 
           <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -250,11 +250,11 @@ export default function HomePage() {
                 From One Business Owner to Another
               </h2>
               <p className="mt-4 text-lg text-gray-600">
-                "I created Local Lead Bot because I saw so many talented service
+                &quot;I created Local Lead Bot because I saw so many talented service
                 providers, especially in the beauty industry, overwhelmed by the
                 administrative side of their business. My goal is to give you
                 back your most valuable asset—your time—so you can focus on
-                your clients and your craft."
+                your clients and your craft.&quot;
               </p>
               <p className="mt-4 font-semibold text-gray-800">
                 Sande, Founder of Local Lead Bot
@@ -273,9 +273,9 @@ export default function HomePage() {
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="p-8 bg-gray-50 rounded-lg border text-left">
               <p className="text-gray-600">
-                "Local Lead Bot has been a game-changer. I'm booking more
-                clients than ever, and I'm not glued to my phone answering DMs
-                all night."
+                &quot;Local Lead Bot has been a game-changer. I&apos;m booking more
+                clients than ever, and I&apos;m not glued to my phone answering DMs
+                all night.&quot;
               </p>
               <p className="mt-4 font-semibold text-gray-800">
                 - Jessica L., Owner of Luxe Beauty Bar
@@ -283,9 +283,9 @@ export default function HomePage() {
             </div>
             <div className="p-8 bg-gray-50 rounded-lg border text-left">
               <p className="text-gray-600">
-                "The setup was surprisingly easy, and it started working almost
-                immediately. It's the best investment I've made for my salon
-                this year."
+                &quot;The setup was surprisingly easy, and it started working almost
+                immediately. It&apos;s the best investment I&apos;ve made for my salon
+                this year.&quot;
               </p>
               <p className="mt-4 font-semibold text-gray-800">
                 - Maria R., Owner of The Glam Room
@@ -293,8 +293,8 @@ export default function HomePage() {
             </div>
             <div className="p-8 bg-gray-50 rounded-lg border text-left">
               <p className="text-gray-600">
-                "I was losing clients because I couldn't reply fast enough. Now,
-                my bot handles everything. My stress levels are way down."
+                &quot;I was losing clients because I couldn&apos;t reply fast enough. Now,
+                my bot handles everything. My stress levels are way down.&quot;
               </p>
               <p className="mt-4 font-semibold text-gray-800">
                 - Chloe T., Owner of City Style Salon
