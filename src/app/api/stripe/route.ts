@@ -13,11 +13,8 @@ export async function POST(req: Request) {
     const sig = req.headers.get('stripe-signature') as string
     const event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
 
-    // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
-
-      // Get user_id from metadata
       const userId = session.metadata?.supabaseUserId
       const stripeCustomerId = session.customer as string
       const stripeSubscriptionId = session.subscription as string
@@ -26,7 +23,6 @@ export async function POST(req: Request) {
         throw new Error('User ID not found in Stripe checkout session metadata.')
       }
       
-      // Update the user's subscription in your database
       const { error } = await supabase.from('subscriptions').upsert({
         user_id: userId,
         stripe_customer_id: stripeCustomerId,
@@ -40,11 +36,9 @@ export async function POST(req: Request) {
     }
     
     return NextResponse.json({ received: true })
-  } catch (err: unknown) { // <-- FIX: Changed 'any' to 'unknown'
-    // Create a default error message
+  } catch (err: unknown) { // This is the corrected line
     let errorMessage = 'An unknown error occurred in the webhook.';
     
-    // Check if the error is a standard Error object to safely access its message
     if (err instanceof Error) {
       errorMessage = err.message;
     }
