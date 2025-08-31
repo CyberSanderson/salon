@@ -10,9 +10,15 @@ export default function SubscriptionButton() {
   const handleSubscribeClick = () => {
     startTransition(async () => {
       const result = await createCheckoutSession();
-      // Handle potential errors returned from the server action
-      if (result?.error) {
+
+      // Check if the server returned an error
+      if (result.error) {
         alert(result.error);
+      } 
+      // Check if the server returned a success URL
+      else if (result.url) {
+        // Redirect the user to the Stripe checkout page
+        window.location.href = result.url;
       }
     });
   };
