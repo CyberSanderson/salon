@@ -17,11 +17,19 @@ export async function POST(req: Request) {
       systemInstruction: systemInstruction,
     })
 
-    // --- THE FIX IS HERE ---
-    // We separate the conversation history from the last message (the user's new prompt)
-    const history = messages.slice(0, -1);
+    // --- THIS IS THE FINAL, CORRECTED LOGIC ---
+    // Get the user's latest message
     const lastMessage = messages[messages.length - 1];
+    
+    // Get the history, excluding the latest message
+    let history = messages.slice(0, -1);
 
+    // If the history starts with a 'model' message (our welcome message), remove it.
+    // This ensures the conversation always starts with a 'user' message as required by the API.
+    if (history.length > 0 && history[0].role === 'model') {
+      history = history.slice(1);
+    }
+    
     const chat = model.startChat({
         history: history.map((msg: { role: 'user' | 'model', parts: { text: string }[] }) => ({
             role: msg.role,
