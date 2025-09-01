@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-// Updated Message type to match Gemini's format
+// This Message type now matches the Gemini API's format
 type Message = {
   role: 'user' | 'model'; // 'model' is what Gemini calls the AI
   parts: { text: string }[];
@@ -17,7 +17,7 @@ export default function ChatWidget({ settings }: { settings: BotSettings | null 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // For loading state
+  const [isLoading, setIsLoading] = useState(false); // To show a "typing..." indicator
 
   const primaryColor = settings?.primary_color || '#14B8A6';
 
@@ -38,20 +38,21 @@ export default function ChatWidget({ settings }: { settings: BotSettings | null 
     setIsLoading(true);
 
     try {
-      // Call our new API route
+      // Call our secure API route instead of the simulation
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }), // Send the entire history
+        body: JSON.stringify({ messages: newMessages }), // Send the entire conversation history
       });
 
       const data = await res.json();
       
       if (res.ok) {
+        // Add the real response from Gemini to the conversation
         const botMessage: Message = { role: 'model', parts: [{ text: data.text }] };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
       } else {
-        throw new Error(data.error || 'Failed to get response from bot.');
+        throw new Error(data.error || 'Failed to get a response from the bot.');
       }
 
     } catch (error) {
@@ -67,6 +68,7 @@ export default function ChatWidget({ settings }: { settings: BotSettings | null 
     <>
       {isOpen && (
         <div className="fixed bottom-24 right-5 w-96 h-[32rem] bg-white rounded-lg shadow-2xl flex flex-col">
+          {/* Header */}
           <div style={{ backgroundColor: primaryColor }} className="text-white p-4 rounded-t-lg flex justify-between items-center">
             <h3 className="font-bold text-lg">Local Lead Bot</h3>
             <button onClick={() => setIsOpen(false)} className="hover:opacity-75">
@@ -74,6 +76,7 @@ export default function ChatWidget({ settings }: { settings: BotSettings | null 
             </button>
           </div>
 
+          {/* Message Area */}
           <div className="flex-grow p-4 overflow-y-auto space-y-4">
             {messages.map((message, index) => (
               <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -94,6 +97,7 @@ export default function ChatWidget({ settings }: { settings: BotSettings | null 
             )}
           </div>
 
+          {/* Input Form */}
           <form onSubmit={handleSendMessage} className="p-4 border-t bg-gray-50 rounded-b-lg flex gap-2">
             <input
               type="text"
@@ -115,6 +119,7 @@ export default function ChatWidget({ settings }: { settings: BotSettings | null 
         </div>
       )}
       
+      {/* Floating Bubble */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{ backgroundColor: primaryColor }}
