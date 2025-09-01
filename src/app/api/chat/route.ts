@@ -16,11 +16,10 @@ export async function POST(req: Request) {
     // Pass the system instruction when getting the model
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-1.5-flash-latest',
-      systemInstruction: systemInstruction, // <-- THE FIX IS HERE
+      systemInstruction: systemInstruction, // <-- This is the corrected part
     })
 
     const chat = model.startChat({
-        // Filter out the system message from the history sent to the model
         history: messages
           .filter((msg: { role: string }) => msg.role !== 'system')
           .map((msg: { role: 'user' | 'model', parts: { text: string }[] }) => ({
