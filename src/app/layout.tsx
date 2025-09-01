@@ -1,11 +1,14 @@
-// src/app/layout.tsx
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Poppins } from 'next/font/google' // 1. Import Poppins
 import './globals.css'
 import Footer from '@/components/Footer'
-import Header from '@/components/Header' // 1. Import Header
+import Header from '@/components/Header'
 
-const inter = Inter({ subsets: ['latin'] })
+// 2. Configure the font
+const poppins = Poppins({ 
+  subsets: ['latin'],
+  weight: ['400', '600', '700'] 
+})
 
 export const metadata: Metadata = {
   title: 'Local Lead Bot',
@@ -19,8 +22,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Header /> {/* 2. Add Header */}
+      <body className={poppins.className}> {/* 3. Apply the font */}
+        <Header />
         <main>{children}</main>
         <Footer />
       </body>
