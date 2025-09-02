@@ -1,4 +1,3 @@
-// src/components/Footer.tsx
 import Link from 'next/link';
 
 export default function Footer() {
@@ -9,29 +8,29 @@ export default function Footer() {
           {/* Brand Name and Copyright */}
           <div>
             <Link href="/" className="text-2xl font-bold text-gray-800">
-              Local Lead Bot
+              Ariah Desk
             </Link>
             <p className="mt-2 text-sm text-gray-500">
-              &copy; 2025 Local Lead Bot. All Rights Reserved.
+              &copy; 2025 Ariah Desk. All Rights Reserved.
             </p>
           </div>
 
-          {/* Navigation Links */}
+          {/* Navigation Links - UPDATED */}
           <div className="mt-6 md:mt-0">
             <Link
-              href="/#pricing" // Example link, can be changed later
+              href="/#pricing"
               className="text-gray-600 hover:text-teal-500 mx-3"
             >
               Pricing
             </Link>
             <Link
-              href="/#features" // Example link
+              href="/terms-of-service"
               className="text-gray-600 hover:text-teal-500 mx-3"
             >
-              Features
+              Terms of Service
             </Link>
             <Link
-              href="/privacy-policy" // Example link
+              href="/privacy-policy"
               className="text-gray-600 hover:text-teal-500 mx-3"
             >
               Privacy Policy

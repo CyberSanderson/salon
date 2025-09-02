@@ -16,22 +16,28 @@ export async function saveBotSettings(formData: FormData) {
     return redirect('/login')
   }
 
+  // Get all the new fields from the form data
   const welcomeMessage = formData.get('welcomeMessage') as string
   const primaryColor = formData.get('primaryColor') as string
+  const salonName = formData.get('salon_name') as string
+  const services = formData.get('services') as string
+  const hours = formData.get('hours') as string
 
+  // Use upsert to create or update the settings in the database
   const { error } = await supabase.from('bots').upsert({
-    user_id: user.id, // The user's ID
+    user_id: user.id,
     welcome_message: welcomeMessage,
     primary_color: primaryColor,
+    salon_name: salonName,
+    services: services,
+    hours: hours,
   })
 
   if (error) {
     console.error('Error saving bot settings:', error)
-    // In a real app, you'd return a proper error message
     return { error: 'Failed to save settings.' }
   }
 
-  // Refresh the dashboard page to show the new settings
   revalidatePath('/dashboard')
   return { success: 'Settings saved successfully!' }
 }

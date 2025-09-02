@@ -4,10 +4,12 @@
 import { saveBotSettings } from '@/actions/chatbot'
 import { useState } from 'react'
 
-// Define a type for the bot settings for better type safety
 type BotSettings = {
   welcome_message?: string
   primary_color?: string
+  salon_name?: string
+  services?: string
+  hours?: string
 }
 
 export default function ChatbotForm({
@@ -28,7 +30,6 @@ export default function ChatbotForm({
       setMessage('Success! Your settings have been saved.')
     }
 
-    // Hide the message after 3 seconds
     setTimeout(() => setMessage(null), 3000)
   }
 
@@ -38,6 +39,26 @@ export default function ChatbotForm({
       className="mt-8 p-6 bg-white border rounded-lg shadow-sm space-y-4"
     >
       <h2 className="text-xl font-semibold">Chatbot Settings</h2>
+      
+      {/* Salon Name */}
+      <div>
+        <label
+          htmlFor="salon_name"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Salon Name
+        </label>
+        <input
+          id="salon_name"
+          name="salon_name"
+          type="text"
+          defaultValue={initialData?.salon_name || ''}
+          className="w-full px-3 py-2 mt-1 border rounded-md"
+          placeholder="e.g., Luxe Beauty Bar"
+        />
+      </div>
+
+      {/* Welcome Message */}
       <div>
         <label
           htmlFor="welcomeMessage"
@@ -47,13 +68,51 @@ export default function ChatbotForm({
         </label>
         <textarea
           id="welcomeMessage"
-          name="welcomeMessage" // Add name attribute for FormData
+          name="welcomeMessage"
           defaultValue={initialData?.welcome_message || ''}
           rows={3}
           className="w-full px-3 py-2 mt-1 border rounded-md"
           placeholder="Hi there! How can I help you book an appointment today?"
         />
       </div>
+
+      {/* Services and Pricing */}
+       <div>
+        <label
+          htmlFor="services"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Services & Pricing (one per line)
+        </label>
+        <textarea
+          id="services"
+          name="services"
+          defaultValue={initialData?.services || ''}
+          rows={5}
+          className="w-full px-3 py-2 mt-1 border rounded-md"
+          placeholder="e.g., Haircut: $50&#10;Coloring: $120&#10;Manicure: $35"
+        />
+      </div>
+
+       {/* Business Hours */}
+       <div>
+        <label
+          htmlFor="hours"
+          className="block text-sm font-medium text-gray-700"
+        >
+          Business Hours
+        </label>
+        <textarea
+          id="hours"
+          name="hours"
+          defaultValue={initialData?.hours || ''}
+          rows={3}
+          className="w-full px-3 py-2 mt-1 border rounded-md"
+          placeholder="e.g., Monday-Friday: 9am - 7pm&#10;Saturday: 10am - 5pm"
+        />
+      </div>
+
+      {/* Chat Widget Color */}
       <div>
         <label
           htmlFor="primaryColor"
@@ -63,12 +122,13 @@ export default function ChatbotForm({
         </label>
         <input
           id="primaryColor"
-          name="primaryColor" // Add name attribute for FormData
+          name="primaryColor"
           type="color"
           defaultValue={initialData?.primary_color || '#000000'}
           className="mt-1 h-10 w-full"
         />
       </div>
+
       <div className="flex items-center gap-4">
         <button
           type="submit"
