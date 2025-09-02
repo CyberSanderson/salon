@@ -1,53 +1,122 @@
-'use server'
-
+// src/app/api/chat/route.ts
+import {
+  GoogleGenerativeAI,
+  Tool,
+  Content,
+  FunctionDeclarationSchemaType,
+} from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
+import { bookAppointment, AppointmentDetails } from '@/actions/appointments'
 
-// FIX: Ensure this interface is exported so other files can import it
-export interface AppointmentDetails {
-  service: string
-  appointmentTime: string
-  customerName: string
-  customerPhone?: string
+export const runtime = 'edge'
+
+type Message = {
+  role: 'user' | 'model'
+  parts: { text: string }[]
 }
 
-export async function bookAppointment(details: AppointmentDetails) {
-  const supabase = createClient()
+export async function POST(req: Request) {
+  try {
+    const supabase = createClient()
+    const { messages }: { messages: Message[] } = await req.json()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return new NextResponse('Unauthorized', { status: 401 })
+    }
 
-  if (!user) {
-    return { error: 'You must be logged in to book an appointment.' }
-  }
+    const { data: botSettings } = await supabase
+      .from('bots')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
 
-  const { service, appointmentTime, customerName, customerPhone } = details
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-  const { data, error } = await supabase
-    .from('appointments')
-    .insert([
+    const tools: Tool[] = [
       {
-        user_id: user.id,
-        service,
-        appointment_time: appointmentTime,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        status: 'booked',
+        functionDeclarations: [
+          {
+            name: 'bookAppointment',
+            description:
+              'Books a salon appointment. Collect service, date, time, and customer name before calling.',
+            parameters: {
+              type: FunctionDeclarationSchemaType.OBJECT,
+              properties: {
+                service: { type: FunctionDeclarationSchemaType.STRING },
+                appointmentTime: { type: FunctionDeclarationSchemaType.STRING },
+                customerName: { type: FunctionDeclarationSchemaType.STRING },
+                customerPhone: { type: FunctionDeclarationSchemaType.STRING },
+              },
+              required: ['service', 'appointmentTime', 'customerName'],
+            },
+          },
+        ],
       },
-    ])
-    .select()
+    ]
 
-  if (error) {
-    console.error(
-      'Error booking appointment. Details received:',
-      details,
-      'Supabase error:',
-      error
-    )
-    return { error: 'Sorry, there was an error booking the appointment.' }
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash-latest',
+      systemInstruction: `You are a receptionist for "${
+        botSettings?.salon_name || 'the salon'
+      }". Your goal is to answer questions based ONLY on the salon info
+      provided and to book appointments using the 'bookAppointment' tool.
+      When a user wants to book, you MUST collect the service, date, time, and their name.
+      When handling dates, you MUST be very precise. Today's date is ${new Date().toISOString()}.
+      When a user provides a relative date like "tomorrow" or "Wednesday", you must calculate
+      the full, absolute date and convert the final result to a complete ISO 8601 UTC string.
+      For example, if today is Monday, Sep 1st, 2025 and the user asks for
+      "Wednesday at 11am", you must provide the appointmentTime as "2025-09-03T11:00:00.000Z".
+      
+      SALON INFORMATION:
+      - Services and Prices: ${botSettings?.services || 'Not provided.'}
+      - Business Hours: ${botSettings?.hours || 'Not provided.'}`,
+      tools: tools,
+    })
+
+    let history = messages.slice(0, -1)
+    const lastMessage = messages[messages.length - 1]
+
+    if (history.length > 0 && history[0].role === 'model') {
+      history.shift()
+    }
+
+    const chat = model.startChat({ history: history as Content[] })
+
+    const result = await chat.sendMessage(lastMessage.parts[0].text)
+    const response = result.response
+
+    const functionCalls = response.functionCalls()
+    if (functionCalls && functionCalls.length > 0) {
+      const functionCall = functionCalls[0]
+
+      if (functionCall.name === 'bookAppointment') {
+        const toolResult = await bookAppointment(
+          functionCall.args as AppointmentDetails
+        )
+
+        const result2 = await chat.sendMessage([
+          {
+            functionResponse: {
+              name: 'bookAppointment',
+              response: toolResult,
+            },
+          },
+        ])
+
+        const finalResponse = result2.response
+        const text = finalResponse.text()
+        return NextResponse.json({ text })
+      }
+    }
+
+    const text = response.text()
+    return NextResponse.json({ text })
+  } catch (error) {
+    console.error('Error in Gemini API route:', error)
+    return new NextResponse('Internal Server Error', { status: 500 })
   }
-
-  console.log('Successfully booked appointment:', data)
-  return { success: `Appointment successfully booked for ${customerName}!` }
 }

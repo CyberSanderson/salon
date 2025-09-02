@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 
-// FIX: Export the interface so other files can import it
+// Ensure the interface is exported so other files can use it
 export interface AppointmentDetails {
   service: string
   appointmentTime: string
