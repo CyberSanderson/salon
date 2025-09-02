@@ -1,9 +1,9 @@
-// src/actions/appointments.ts
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 
-// FIX: Ensure 'export' is here so other files can use this type
+// FIX: Ensure this interface is exported so other files can import it
 export interface AppointmentDetails {
   service: string
   appointmentTime: string
@@ -39,7 +39,12 @@ export async function bookAppointment(details: AppointmentDetails) {
     .select()
 
   if (error) {
-    console.error('Error booking appointment:', error)
+    console.error(
+      'Error booking appointment. Details received:',
+      details,
+      'Supabase error:',
+      error
+    )
     return { error: 'Sorry, there was an error booking the appointment.' }
   }
 
