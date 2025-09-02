@@ -10,15 +10,16 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.15.0",
-    "@supabase/ssr": "^0.4.0",
+    "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.44.4",
     "framer-motion": "^11.3.2",
-    "next": "14.2.4",
+    "next": "^14.2.32",
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^16.2.0"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

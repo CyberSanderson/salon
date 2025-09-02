@@ -8,12 +8,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-      },
+      // You can extend your theme here if needed
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'), // <-- ADD THIS LINE
+  ],
 };
 export default config;
