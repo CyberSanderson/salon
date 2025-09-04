@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import SubscriptionButton from '@/components/SubscriptionButton'
 import ChatbotForm from '@/components/ChatbotForm'
 import ChatWidget from '@/components/ChatWidget'
+import AppointmentsList from '@/components/AppointmentsList' // 1. Import the new component
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -15,11 +16,14 @@ export default async function DashboardPage() {
     return redirect('/login')
   }
 
-  const { data: botSettings } = await supabase
-    .from('bots')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
+  // 2. Fetch both the bot settings AND the appointments in parallel
+  const [
+    { data: botSettings },
+    { data: appointments }
+  ] = await Promise.all([
+    supabase.from('bots').select('*').eq('user_id', user.id).single(),
+    supabase.from('appointments').select('*').eq('user_id', user.id).order('appointment_time', { ascending: false })
+  ]);
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -27,9 +31,12 @@ export default async function DashboardPage() {
         Welcome to Your Dashboard
       </h1>
       <p className="mt-4 text-lg text-gray-600">
-        This is your private, secure area. Configure your chatbot and manage
+        This is your private, secure area. View your bot&apos;s performance, configure its settings, and manage
         your subscription below.
       </p>
+
+      {/* 3. Add the AppointmentsList component here */}
+      <AppointmentsList appointments={appointments} />
 
       <ChatbotForm initialData={botSettings} />
 
@@ -41,7 +48,6 @@ export default async function DashboardPage() {
         <SubscriptionButton />
       </div>
       
-      {/* Pass the bot settings to the widget */}
       <ChatWidget settings={botSettings} />
     </div>
   )

@@ -180,7 +180,7 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
                  <li className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clipRule="evenodd" /></svg><span>Monthly Bot Optimization</span></li>
                  <li className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clipRule="evenodd" /></svg><span>VIP Priority Support</span></li>
               </ul>
-              <a href="https://calendar.app.google.com/zcKRVF2mtaTqM7SCA" target="_blank" rel="noopener noreferrer" className="mt-8 block w-full px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors text-center">Book a Free Consultation</a>
+              <a href="https://calendar.app.google/TFsMHWEf9CPzc7hv8" target="_blank" rel="noopener noreferrer" className="mt-8 block w-full px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors text-center">Book a Free Consultation</a>
             </div>
             <div className="p-8 bg-white rounded-lg border shadow-md flex flex-col">
               <h3 className="text-2xl font-semibold text-gray-800">Free</h3>
