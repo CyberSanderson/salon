@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     return redirect('/login')
   }
 
-  // Fetch both the bot settings AND the appointments in parallel for efficiency
+  // Fetch again both the bot settings AND the appointments in parallel for efficiency
   const [
     { data: botSettings },
     { data: appointments }
