@@ -22,7 +22,7 @@ export async function continueConversation(messages: Message[]) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new Error('User not authenticated for chat action')
     }
 
     const { data: botSettings } = await supabase
