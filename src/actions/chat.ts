@@ -1,4 +1,5 @@
-// src/app/api/chat/route.ts
+'use server'
+
 import {
   GoogleGenerativeAI,
   Tool,
@@ -6,26 +7,22 @@ import {
   FunctionDeclarationSchemaType,
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
-import { bookAppointment, AppointmentDetails } from '@/actions/appointments'
-
-export const runtime = 'edge'
+import { bookAppointment, AppointmentDetails } from './appointments'
 
 type Message = {
   role: 'user' | 'model'
   parts: { text: string }[]
 }
 
-export async function POST(req: Request) {
+export async function continueConversation(messages: Message[]) {
   try {
     const supabase = createClient()
-    const { messages }: { messages: Message[] } = await req.json()
 
     const {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 })
+      throw new Error('User not authenticated')
     }
 
     const { data: botSettings } = await supabase
@@ -41,8 +38,7 @@ export async function POST(req: Request) {
         functionDeclarations: [
           {
             name: 'bookAppointment',
-            description:
-              'Books a salon appointment. Collect service, date, time, and customer name before calling.',
+            description: 'Books a salon appointment. Collect service, date, time, and customer name before calling.',
             parameters: {
               type: FunctionDeclarationSchemaType.OBJECT,
               properties: {
@@ -60,16 +56,7 @@ export async function POST(req: Request) {
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash-latest',
-      systemInstruction: `You are a receptionist for "${
-        botSettings?.salon_name || 'the salon'
-      }". Your goal is to answer questions based ONLY on the salon info
-      provided and to book appointments using the 'bookAppointment' tool.
-      When a user wants to book, you MUST collect the service, date, time, and their name.
-      When handling dates, you MUST be very precise. Today's date is ${new Date().toISOString()}.
-      When a user provides a relative date like "tomorrow" or "Wednesday", you must calculate
-      the full, absolute date and convert the final result to a complete ISO 8601 UTC string.
-      For example, if today is Monday, Sep 1st, 2025 and the user asks for
-      "Wednesday at 11am", you must provide the appointmentTime as "2025-09-03T11:00:00.000Z".
+      systemInstruction: `You are a receptionist for "${ botSettings?.salon_name || 'the salon' }". Your goal is to answer questions based ONLY on the salon info provided and to book appointments using the 'bookAppointment' tool. When a user wants to book, you MUST collect the service, date, time, and their name. When handling dates, you MUST be very precise. Today's date is ${new Date().toISOString()}. When a user provides a relative date like "tomorrow" or "Wednesday", you must calculate the full, absolute date and convert the final result to a complete ISO 8601 UTC string.
       
       SALON INFORMATION:
       - Services and Prices: ${botSettings?.services || 'Not provided.'}
@@ -85,38 +72,22 @@ export async function POST(req: Request) {
     }
 
     const chat = model.startChat({ history: history as Content[] })
-
     const result = await chat.sendMessage(lastMessage.parts[0].text)
     const response = result.response
 
     const functionCalls = response.functionCalls()
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
-
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookAppointment(
-          functionCall.args as AppointmentDetails
-        )
-
-        const result2 = await chat.sendMessage([
-          {
-            functionResponse: {
-              name: 'bookAppointment',
-              response: toolResult,
-            },
-          },
-        ])
-
-        const finalResponse = result2.response
-        const text = finalResponse.text()
-        return NextResponse.json({ text })
+        const toolResult = await bookAppointment(functionCall.args as AppointmentDetails)
+        const result2 = await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        return { text: result2.response.text() }
       }
     }
 
-    const text = response.text()
-    return NextResponse.json({ text })
+    return { text: response.text() }
   } catch (error) {
-    console.error('Error in Gemini API route:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    console.error('Error in continueConversation action:', error)
+    return { error: 'An internal error occurred.' }
   }
 }

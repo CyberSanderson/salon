@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { continueConversation } from '@/actions/chat' // 1. Import the new server action
 
+// Define a type for our message object to match the action
 type Message = {
   role: 'user' | 'model'
   parts: { text: string }[]
@@ -12,10 +14,9 @@ type BotSettings = {
   primary_color?: string
 }
 
-// 1. Accept botId as a new prop
 export default function ChatWidget({
   settings,
-  botId,
+  botId, // Note: botId is for the public widget; the action uses the logged-in session here
 }: {
   settings: BotSettings | null
   botId: string
@@ -45,20 +46,14 @@ export default function ChatWidget({
     setIsLoading(true)
 
     try {
-      // 2. Send the botId along with the messages to the API
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, botId: botId }),
-      })
+      // 2. Call the server action directly instead of using fetch
+      const result = await continueConversation(newMessages)
 
-      const data = await res.json()
-
-      if (res.ok) {
-        const botMessage: Message = { role: 'model', parts: [{ text: data.text }] }
+      if (result.text) {
+        const botMessage: Message = { role: 'model', parts: [{ text: result.text }] }
         setMessages((prevMessages) => [...prevMessages, botMessage])
       } else {
-        throw new Error(data.error || 'Failed to get response from bot.')
+        throw new Error(result.error || 'Failed to get response from bot.')
       }
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -74,7 +69,20 @@ export default function ChatWidget({
 
   return (
     <>
-      {/* The Chat Window */}
+      {/* Chat Bubble */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ backgroundColor: primaryColor }}
+        className="fixed bottom-5 right-5 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-10"
+      >
+        {isOpen ? (
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+        ) : (
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
+        )}
+      </button>
+
+      {/* Chat Window */}
       {isOpen && (
         <div className="fixed bottom-24 right-5 w-96 h-[32rem] bg-white rounded-lg shadow-2xl flex flex-col z-20">
           <div
@@ -82,12 +90,6 @@ export default function ChatWidget({
             className="text-white p-4 rounded-t-lg flex justify-between items-center"
           >
             <h3 className="font-bold text-lg">Ariah Desk Assistant</h3>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="hover:opacity-75"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-            </button>
           </div>
           <div className="flex-grow p-4 overflow-y-auto space-y-4">
             {messages.map((message, index) => (
@@ -143,19 +145,6 @@ export default function ChatWidget({
           </form>
         </div>
       )}
-      
-      {/* The Floating Bubble Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ backgroundColor: primaryColor }}
-        className="fixed bottom-5 right-5 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-10"
-      >
-        {isOpen ? (
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-        ) : (
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>
-        )}
-      </button>
     </>
   )
 }
