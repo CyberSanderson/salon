@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={poppins.className}>
-        {/* This layout intentionally has no header or footer */}
+        {/* This layout is intentionally minimalist. It has no Header or Footer. */}
         {children}
       </body>
     </html>

@@ -20,7 +20,7 @@ type Message = {
 
 interface ConversationPayload {
   messages: Message[]
-  botId?: string
+  botId?: string // botId is optional; if present, it's a public request
 }
 
 export async function continueConversation(payload: ConversationPayload) {
@@ -30,6 +30,7 @@ export async function continueConversation(payload: ConversationPayload) {
   let ownerUserId: string | null = null
   let isAuthenticatedRequest = false
 
+  // Determine if this is an authenticated request (from dashboard) or a public one (from widget)
   if (botId) {
     ownerUserId = botId
   } else {
@@ -56,8 +57,7 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-    // --- UPDATED TOOL DEFINITION ---
-    // The AI's task is now much simpler.
+    // The tool definition now uses the simpler date/time format
     const tools: Tool[] = [
       {
         functionDeclarations: [
@@ -100,8 +100,6 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash-latest',
-      // --- UPDATED SYSTEM INSTRUCTION ---
-      // We now give the AI a simpler, more direct formatting task.
       systemInstruction: `You are a receptionist for "${
         botSettings.salon_name
       }". Your goal is to answer questions based ONLY on the salon info provided and to book appointments using the 'bookAppointment' tool.
@@ -131,6 +129,7 @@ export async function continueConversation(payload: ConversationPayload) {
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
+        // Decide which booking action to call based on the context
         const toolResult = isAuthenticatedRequest
           ? await bookAppointment(functionCall.args as AppointmentDetails)
           : await bookPublicAppointment(
@@ -152,7 +151,11 @@ export async function continueConversation(payload: ConversationPayload) {
 
     return { text: response.text() }
   } catch (error) {
-    console.error('Error in continueConversation action:', error)
+    console.error('Error in continueConversation action:', {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        payload: payload,
+        stack: error instanceof Error ? error.stack : undefined,
+    });
     return { error: 'An internal error occurred.' }
   }
 }

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server'
 
-// The new, simpler interface for our tool
+// Ensure the interface is exported so other files can use it
 export interface AppointmentDetails {
   service: string
   appointmentDate: string // e.g., "2025-09-08"
@@ -21,7 +21,7 @@ export async function bookAppointment(details: AppointmentDetails) {
   }
 
   // Combine date and time into a full ISO string
-  const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString();
+  const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString()
 
   const { data, error } = await supabase.from('appointments').insert([
     {
@@ -42,16 +42,15 @@ export async function bookAppointment(details: AppointmentDetails) {
   return { success: `Appointment successfully booked for ${details.customerName}!` }
 }
 
-// --- NEW PUBLIC ACTION ---
+// This is the new public action for the embeddable widget
 export async function bookPublicAppointment(details: AppointmentDetails, botId: string) {
   const supabase = createClient()
 
-  // Combine date and time into a full ISO string
-  const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString();
+  const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString()
 
   const { data, error } = await supabase.from('appointments').insert([
     {
-      user_id: botId,
+      user_id: botId, // Use the botId as the owner of the appointment
       service: details.service,
       appointment_time: fullAppointmentTime,
       customer_name: details.customerName,
