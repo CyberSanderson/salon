@@ -15,13 +15,19 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Navigation Links - UPDATED */}
+          {/* Navigation Links */}
           <div className="mt-6 md:mt-0">
             <Link
               href="/#pricing"
               className="text-gray-600 hover:text-teal-500 mx-3"
             >
               Pricing
+            </Link>
+            <Link
+              href="/affiliates"
+              className="text-gray-600 hover:text-teal-500 mx-3"
+            >
+              Affiliates
             </Link>
             <Link
               href="/terms-of-service"
