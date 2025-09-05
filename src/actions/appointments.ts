@@ -2,11 +2,10 @@
 
 import { createClient } from '@/utils/supabase/server'
 
-// Ensure the interface is exported so other files can use it
 export interface AppointmentDetails {
   service: string
-  appointmentDate: string // e.g., "2025-09-08"
-  appointmentTime: string // e.g., "11:00"
+  appointmentDate: string
+  appointmentTime: string
   customerName: string
   customerPhone?: string
 }
@@ -20,7 +19,11 @@ export async function bookAppointment(details: AppointmentDetails) {
     return { error: 'You must be logged in to book an appointment.' }
   }
 
-  // Combine date and time into a full ISO string
+  // --- NEW VALIDATION SAFETY NET ---
+  if (!details.service || !details.appointmentDate || !details.appointmentTime || !details.customerName) {
+    return { error: "I'm sorry, but I'm missing some required information to book the appointment. Please provide the service, date, time, and your name." }
+  }
+
   const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString()
 
   const { data, error } = await supabase.from('appointments').insert([
@@ -36,21 +39,26 @@ export async function bookAppointment(details: AppointmentDetails) {
 
   if (error) {
     console.error('Error booking appointment:', details, error)
-    return { error: 'Sorry, there was an error booking the appointment.' }
+    return { error: 'Sorry, there was an error in our system while booking.' }
   }
 
   return { success: `Appointment successfully booked for ${details.customerName}!` }
 }
 
-// This is the new public action for the embeddable widget
+// This is the public action for the embeddable widget
 export async function bookPublicAppointment(details: AppointmentDetails, botId: string) {
   const supabase = createClient()
+
+  // --- NEW VALIDATION SAFETY NET ---
+  if (!details.service || !details.appointmentDate || !details.appointmentTime || !details.customerName) {
+    return { error: "I'm sorry, but I'm missing some required information to book the appointment. Please provide the service, date, time, and your name." }
+  }
 
   const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString()
 
   const { data, error } = await supabase.from('appointments').insert([
     {
-      user_id: botId, // Use the botId as the owner of the appointment
+      user_id: botId,
       service: details.service,
       appointment_time: fullAppointmentTime,
       customer_name: details.customerName,
@@ -61,7 +69,7 @@ export async function bookPublicAppointment(details: AppointmentDetails, botId: 
 
   if (error) {
     console.error('Error booking public appointment:', details, error)
-    return { error: 'Sorry, there was an error booking the appointment.' }
+    return { error: 'Sorry, there was an error in our system while booking.' }
   }
 
   return { success: `Appointment successfully booked for ${details.customerName}!` }
