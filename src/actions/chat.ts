@@ -20,7 +20,7 @@ type Message = {
 
 interface ConversationPayload {
   messages: Message[]
-  botId?: string // botId is optional; if present, it's a public request
+  botId?: string
 }
 
 export async function continueConversation(payload: ConversationPayload) {
@@ -30,7 +30,6 @@ export async function continueConversation(payload: ConversationPayload) {
   let ownerUserId: string | null = null
   let isAuthenticatedRequest = false
 
-  // Determine if this is an authenticated request (from dashboard) or a public one (from widget)
   if (botId) {
     ownerUserId = botId
   } else {
@@ -38,7 +37,6 @@ export async function continueConversation(payload: ConversationPayload) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
-      // This case handles the dashboard preview
       throw new Error('User not authenticated for a private chat session.')
     }
     ownerUserId = user.id
@@ -58,6 +56,8 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
+    // --- UPDATED TOOL DEFINITION ---
+    // The AI's task is now much simpler.
     const tools: Tool[] = [
       {
         functionDeclarations: [
@@ -69,11 +69,29 @@ export async function continueConversation(payload: ConversationPayload) {
               type: FunctionDeclarationSchemaType.OBJECT,
               properties: {
                 service: { type: FunctionDeclarationSchemaType.STRING },
-                appointmentTime: { type: FunctionDeclarationSchemaType.STRING },
-                customerName: { type: FunctionDeclarationSchemaType.STRING },
-                customerPhone: { type: FunctionDeclarationSchemaType.STRING },
+                appointmentDate: {
+                  type: FunctionDeclarationSchemaType.STRING,
+                  description:
+                    'The date of the appointment in YYYY-MM-DD format, e.g., "2025-09-08"',
+                },
+                appointmentTime: {
+                  type: FunctionDeclarationSchemaType.STRING,
+                  description:
+                    'The time of the appointment in 24-hour HH:MM format, e.g., "14:30" for 2:30 PM',
+                },
+                customerName: {
+                  type: FunctionDeclarationSchemaType.STRING,
+                },
+                customerPhone: {
+                  type: FunctionDeclarationSchemaType.STRING,
+                },
               },
-              required: ['service', 'appointmentTime', 'customerName'],
+              required: [
+                'service',
+                'appointmentDate',
+                'appointmentTime',
+                'customerName',
+              ],
             },
           },
         ],
@@ -82,9 +100,15 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash-latest',
+      // --- UPDATED SYSTEM INSTRUCTION ---
+      // We now give the AI a simpler, more direct formatting task.
       systemInstruction: `You are a receptionist for "${
         botSettings.salon_name
-      }". Your goal is to answer questions based ONLY on the salon info provided and to book appointments using the 'bookAppointment' tool. Today's date is ${new Date().toISOString()}.
+      }". Your goal is to answer questions based ONLY on the salon info provided and to book appointments using the 'bookAppointment' tool.
+      When a user wants to book, you MUST collect the service, date, time, and their name.
+      When handling dates and times, you MUST be very precise. Today's date is ${new Date().toISOString()}.
+      You must provide the arguments to the 'bookAppointment' tool in the exact format specified: 'YYYY-MM-DD' for the date and 'HH:MM' for the time.
+      For example, if today is Monday, Sep 5th, 2025 and a user asks for "Wednesday at 11am", you must calculate the absolute date and provide appointmentDate as "2025-09-07" and appointmentTime as "11:00".
       
       SALON INFORMATION:
       - Services and Prices: ${botSettings.services}
@@ -107,7 +131,6 @@ export async function continueConversation(payload: ConversationPayload) {
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        // Decide which booking action to call based on the context
         const toolResult = isAuthenticatedRequest
           ? await bookAppointment(functionCall.args as AppointmentDetails)
           : await bookPublicAppointment(
