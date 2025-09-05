@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import SubscriptionButton from '@/components/SubscriptionButton'
 import ChatbotForm from '@/components/ChatbotForm'
 import ChatWidget from '@/components/ChatWidget'
-import AppointmentsList from '@/components/AppointmentsList' // 1. Import the new component
+import AppointmentsList from '@/components/AppointmentsList'
+import InstallationCode from '@/components/InstallationCode' // 1. Import the new component
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
     return redirect('/login')
   }
 
-  // 2. Fetch both the bot settings AND the appointments in parallel
+  // Fetch both the bot settings AND the appointments in parallel for efficiency
   const [
     { data: botSettings },
     { data: appointments }
@@ -35,11 +36,16 @@ export default async function DashboardPage() {
         your subscription below.
       </p>
 
-      {/* 3. Add the AppointmentsList component here */}
+      {/* 2. Add the InstallationCode component here, passing the user's ID */}
+      <InstallationCode userId={user.id} />
+
+      {/* The list of appointments booked by the bot */}
       <AppointmentsList appointments={appointments} />
 
+      {/* The form for configuring the chatbot */}
       <ChatbotForm initialData={botSettings} />
 
+      {/* The section for managing the subscription */}
       <div className="mt-8 p-6 bg-white border rounded-lg shadow-sm">
         <h2 className="text-xl font-semibold">Subscription Status</h2>
         <p className="mt-2 text-gray-500">
@@ -48,6 +54,7 @@ export default async function DashboardPage() {
         <SubscriptionButton />
       </div>
       
+      {/* The live preview of the chat widget */}
       <ChatWidget settings={botSettings} />
     </div>
   )
