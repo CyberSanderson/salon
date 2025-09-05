@@ -56,6 +56,8 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
+    // --- UPDATED TOOL DEFINITION ---
+    // The AI's task is now much simpler.
     const tools: Tool[] = [
       {
         functionDeclarations: [
@@ -70,12 +72,12 @@ export async function continueConversation(payload: ConversationPayload) {
                 appointmentDate: {
                   type: FunctionDeclarationSchemaType.STRING,
                   description:
-                    'The date of the appointment in YYYY-MM-DD format.',
+                    'The date of the appointment in YYYY-MM-DD format, e.g., "2025-09-08"',
                 },
                 appointmentTime: {
                   type: FunctionDeclarationSchemaType.STRING,
                   description:
-                    'The time of the appointment in 24-hour HH:MM format.',
+                    'The time of the appointment in 24-hour HH:MM format, e.g., "14:30" for 2:30 PM',
                 },
                 customerName: {
                   type: FunctionDeclarationSchemaType.STRING,
@@ -98,12 +100,12 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash-latest',
-      // --- MORE FORCEFUL INSTRUCTION ---
+      // --- UPDATED, MORE FORCEFUL INSTRUCTION ---
       systemInstruction: `You are a receptionist for "${
         botSettings.salon_name
       }". Your goal is to answer questions and book appointments.
       CRITICAL RULE: You MUST NOT call the 'bookAppointment' tool until you have collected ALL of the following required pieces of information from the user: the service, the date, the time, AND their name. If you are missing any of these, you MUST ask for the missing information again. Do not proceed without all required details.
-      Today's date is ${new Date().toISOString()}. Dates must be in YYYY-MM-DD format. Times must be in HH:MM format.
+      CRITICAL RULE 2: Today's date is ${new Date().toISOString()}. When a user gives you a relative date like "Monday", you MUST calculate the correct, absolute date in 'YYYY-MM-DD' format. When they give you a time like "11am", you MUST convert it to 'HH:MM' 24-hour format. This is a strict requirement.
       
       SALON INFORMATION:
       - Services and Prices: ${botSettings.services}
