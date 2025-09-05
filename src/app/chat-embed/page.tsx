@@ -8,28 +8,35 @@ export default async function ChatEmbedPage({
   searchParams: { id: string }
 }) {
   const supabase = createClient()
-  const botId = searchParams.id;
+  const botId = searchParams.id
 
   if (!botId) {
-    // In a real app, you might render an error message
-    return null;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-red-500">Error: Bot ID is missing.</p>
+      </div>
+    )
   }
 
   // Fetch the bot settings using the public ID from the URL
-  // NOTE: This requires your 'bots' table to have read access for anyone.
-  // We will need to set up a specific RLS policy for this.
-  const { data: botSettings } = await supabase
+  const { data: botSettings, error } = await supabase
     .from('bots')
     .select('*')
     .eq('user_id', botId) // We're using the user_id as the public bot ID
     .single()
 
+  if (error || !botSettings) {
+     return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-red-500">Error: Could not load bot settings.</p>
+      </div>
+    )
+  }
+
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {/* The ChatWidget is designed to be 'fixed' to the viewport, which works inside the iframe.
-        We pass the fetched settings to it.
-      */}
-      <ChatWidget settings={botSettings} />
+      {/* Pass the botSettings AND the botId to the widget */}
+      <ChatWidget settings={botSettings} botId={botId} />
     </div>
   )
 }

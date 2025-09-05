@@ -4,7 +4,7 @@ import SubscriptionButton from '@/components/SubscriptionButton'
 import ChatbotForm from '@/components/ChatbotForm'
 import ChatWidget from '@/components/ChatWidget'
 import AppointmentsList from '@/components/AppointmentsList'
-import InstallationCode from '@/components/InstallationCode' // 1. Import the new component
+import InstallationCode from '@/components/InstallationCode'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
         your subscription below.
       </p>
 
-      {/* 2. Add the InstallationCode component here, passing the user's ID */}
+      {/* The installation code snippet for the user's website */}
       <InstallationCode userId={user.id} />
 
       {/* The list of appointments booked by the bot */}
@@ -54,8 +54,9 @@ export default async function DashboardPage() {
         <SubscriptionButton />
       </div>
       
-      {/* The live preview of the chat widget */}
-      <ChatWidget settings={botSettings} />
+      {/* --- THIS IS THE UPDATED PART --- */}
+      {/* The live preview of the chat widget, now with the botId */}
+      <ChatWidget settings={botSettings} botId={user.id} />
     </div>
   )
 }
