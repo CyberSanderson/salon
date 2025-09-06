@@ -105,8 +105,7 @@ export async function continuePublicConversation(
   }
 }
 
-// --- HELPER FUNCTIONS to keep code DRY (Don't Repeat Yourself) ---
-
+// --- HELPER FUNCTIONS ---
 function getGenerativeModel(botSettings: any) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   const tools: Tool[] = [
@@ -158,21 +157,33 @@ function getGenerativeModel(botSettings: any) {
   })
 }
 
+// --- THE FINAL, ROBUST HISTORY HELPER ---
 function getHistory(messages: Message[], botSettings: any): Content[] {
-  let history = messages.slice(0, -1)
+  let history = messages.slice(0, -1) // Get all messages except the last one
+  
   // This robustly handles the initial welcome message for the first user turn
   if (
     history.length > 0 &&
     history[0].role === 'model' &&
     history[0].parts[0].text === botSettings.welcome_message
   ) {
+    // If it's the very first user message, the history should be empty
     if (messages.length === 2) {
       history = []
     }
   }
-  // Ensure we map to the correct type to satisfy the SDK
+
+  // Ensure every part of the history is in the exact format the SDK expects
   return history.map((msg) => ({
     role: msg.role,
-    parts: msg.parts.map((part: Part) => ({ text: part.text || '' })),
+    parts: msg.parts.map((part: Part) => {
+      if (part.functionCall) {
+        return { functionCall: part.functionCall };
+      }
+      if (part.functionResponse) {
+        return { functionResponse: part.functionResponse };
+      }
+      return { text: part.text || '' };
+    }),
   }))
 }

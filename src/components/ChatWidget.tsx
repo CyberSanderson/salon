@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+// Import both server actions to be used based on context
 import {
   continueAuthenticatedConversation,
   continuePublicConversation,
 } from '@/actions/chat'
 import type { Content } from '@google/generative-ai'
 
+// The Message type now directly uses the Content type from the SDK for perfect alignment
 type Message = Content
 
 type BotSettings = {
@@ -16,7 +18,7 @@ type BotSettings = {
 
 export default function ChatWidget({
   settings,
-  botId,
+  botId, // botId is optional. If provided, it's a public widget.
 }: {
   settings: BotSettings | null
   botId?: string
@@ -46,11 +48,14 @@ export default function ChatWidget({
     setIsLoading(true)
 
     try {
+      // --- THE CRITICAL FIX ---
+      // Decide which action to call based on the context (public widget vs. dashboard preview)
       const result = botId
         ? await continuePublicConversation(newMessages, botId)
         : await continueAuthenticatedConversation(newMessages)
 
       if (result.history && result.history.length > 0) {
+        // We replace our local history with the official one from the server.
         setMessages(result.history)
       } else if (result.error) {
         throw new Error(result.error)
@@ -83,6 +88,8 @@ export default function ChatWidget({
         </div>
         <div className="flex-grow p-4 overflow-y-auto space-y-4">
           {messages.map((message, index) => {
+            // The Gemini history can sometimes include tool call/response parts that have no text.
+            // We need to filter those out so they don't render an empty bubble.
             const messageText = message.parts[0]?.text
             if (!messageText) return null
             return (
