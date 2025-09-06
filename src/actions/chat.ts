@@ -5,6 +5,7 @@ import {
   Tool,
   Content,
   FunctionDeclarationSchemaType,
+  Part, // Import the 'Part' type
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
@@ -13,17 +14,22 @@ import {
   AppointmentDetails,
 } from './appointments'
 
-type Message = {
-  role: 'user' | 'model'
-  parts: { text: string }[]
-}
+// Use the 'Content' type from the SDK as our primary message type
+type Message = Content
 
 interface ConversationPayload {
   messages: Message[]
   botId?: string
 }
 
-export async function continueConversation(payload: ConversationPayload) {
+interface ActionResponse {
+  history: Content[]
+  error?: string
+}
+
+export async function continueConversation(
+  payload: ConversationPayload
+): Promise<ActionResponse> {
   const { messages, botId } = payload
   const supabase = createClient()
 
@@ -33,10 +39,9 @@ export async function continueConversation(payload: ConversationPayload) {
   if (botId) {
     ownerUserId = botId
   } else {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
+      console.error("Authentication error: No user session found for private chat.")
       throw new Error('User not authenticated for a private chat session.')
     }
     ownerUserId = user.id
@@ -44,54 +49,39 @@ export async function continueConversation(payload: ConversationPayload) {
   }
 
   try {
-    const { data: botSettings } = await supabase
+    if (!ownerUserId) {
+      throw new Error("Could not determine the owner's user ID.")
+    }
+
+    const { data: botSettings, error: settingsError } = await supabase
       .from('bots')
       .select('*')
       .eq('user_id', ownerUserId)
       .single()
 
-    if (!botSettings) {
+    if (settingsError || !botSettings) {
+      console.error("Database error: Could not fetch bot settings.", { ownerUserId, settingsError })
       throw new Error('Bot settings not found.')
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-    // --- UPDATED TOOL DEFINITION ---
-    // The AI's task is now much simpler.
     const tools: Tool[] = [
       {
         functionDeclarations: [
           {
             name: 'bookAppointment',
-            description:
-              'Books a salon appointment. Only call this function when you have collected all required parameters.',
+            description: 'Books a salon appointment. Only call this function when you have collected all required parameters.',
             parameters: {
               type: FunctionDeclarationSchemaType.OBJECT,
               properties: {
                 service: { type: FunctionDeclarationSchemaType.STRING },
-                appointmentDate: {
-                  type: FunctionDeclarationSchemaType.STRING,
-                  description:
-                    'The date of the appointment in YYYY-MM-DD format, e.g., "2025-09-08"',
-                },
-                appointmentTime: {
-                  type: FunctionDeclarationSchemaType.STRING,
-                  description:
-                    'The time of the appointment in 24-hour HH:MM format, e.g., "14:30" for 2:30 PM',
-                },
-                customerName: {
-                  type: FunctionDeclarationSchemaType.STRING,
-                },
-                customerPhone: {
-                  type: FunctionDeclarationSchemaType.STRING,
-                },
+                appointmentDate: { type: FunctionDeclarationSchemaType.STRING, description: 'The date in YYYY-MM-DD format.' },
+                appointmentTime: { type: FunctionDeclarationSchemaType.STRING, description: 'The time in 24-hour HH:MM format.' },
+                customerName: { type: FunctionDeclarationSchemaType.STRING },
+                customerPhone: { type: FunctionDeclarationSchemaType.STRING },
               },
-              required: [
-                'service',
-                'appointmentDate',
-                'appointmentTime',
-                'customerName',
-              ],
+              required: ['service', 'appointmentDate', 'appointmentTime', 'customerName'],
             },
           },
         ],
@@ -100,28 +90,42 @@ export async function continueConversation(payload: ConversationPayload) {
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash-latest',
-      // --- UPDATED, MORE FORCEFUL INSTRUCTION ---
-      systemInstruction: `You are a receptionist for "${
-        botSettings.salon_name
-      }". Your goal is to answer questions and book appointments.
-      CRITICAL RULE: You MUST NOT call the 'bookAppointment' tool until you have collected ALL of the following required pieces of information from the user: the service, the date, the time, AND their name. If you are missing any of these, you MUST ask for the missing information again. Do not proceed without all required details.
-      CRITICAL RULE 2: Today's date is ${new Date().toISOString()}. When a user gives you a relative date like "Monday", you MUST calculate the correct, absolute date in 'YYYY-MM-DD' format. When they give you a time like "11am", you MUST convert it to 'HH:MM' 24-hour format. This is a strict requirement.
+      systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your goal is to book appointments and answer questions based ONLY on the salon information provided.
+      CRITICAL RULES:
+      1. GATHER ALL INFO: You MUST NOT call the 'bookAppointment' tool until you have collected ALL required information: the service, the date, the time, AND the customer's name.
+      2. VERIFY BUSINESS HOURS: Before calling the tool, you MUST check the requested time against the "Business Hours". If it's outside these hours, inform the user and ask for a different time.
+      3. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. You must convert all dates (e.g., "next Tuesday") into 'YYYY-MM-DD' format and all times (e.g., "2pm") into 24-hour 'HH:MM' format.
       
       SALON INFORMATION:
       - Services and Prices: ${botSettings.services}
       - Business Hours: ${botSettings.hours}`,
       tools: tools,
     })
-
-    let history = messages.slice(0, -1)
-    if (history.length > 0 && history[0].role === 'model') {
-      history.shift()
+    
+    const lastMessage = messages[messages.length - 1];
+    const lastMessageText = lastMessage?.parts[0]?.text;
+    if (typeof lastMessageText !== 'string') {
+        throw new Error("The last message sent to the action had no text content.");
     }
+    
+    let historyMessages = messages.slice(0, -1);
+    if (historyMessages.length > 0 && historyMessages[0].role === 'model') {
+       if (messages.length === 2) { 
+           historyMessages = [];
+       } else {
+           historyMessages.shift();
+       }
+    }
+    
+    // --- ROBUST HISTORY MAPPING ---
+    // Explicitly map our Message array to the SDK's Content array to be 100% type-safe.
+    const history: Content[] = historyMessages.map(msg => ({
+        role: msg.role,
+        parts: msg.parts.map((part: Part) => ({ text: part.text || "" }))
+    }));
 
-    const chat = model.startChat({ history: history as Content[] })
-    const result = await chat.sendMessage(
-      messages[messages.length - 1].parts[0].text
-    )
+    const chat = model.startChat({ history })
+    const result = await chat.sendMessage(lastMessageText)
     const response = result.response
 
     const functionCalls = response.functionCalls()
@@ -130,30 +134,21 @@ export async function continueConversation(payload: ConversationPayload) {
       if (functionCall.name === 'bookAppointment') {
         const toolResult = isAuthenticatedRequest
           ? await bookAppointment(functionCall.args as AppointmentDetails)
-          : await bookPublicAppointment(
-              functionCall.args as AppointmentDetails,
-              ownerUserId
-            )
+          : await bookPublicAppointment(functionCall.args as AppointmentDetails, ownerUserId);
 
-        const result2 = await chat.sendMessage([
-          {
-            functionResponse: {
-              name: 'bookAppointment',
-              response: toolResult,
-            },
-          },
-        ])
-        return { text: result2.response.text() }
+        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
       }
     }
+    
+    const updatedHistory = await chat.getHistory()
+    return { history: updatedHistory }
 
-    return { text: response.text() }
   } catch (error) {
     console.error('Error in continueConversation action:', {
-      errorMessage: error instanceof Error ? error.message : String(error),
-      payload: payload,
-      stack: error instanceof Error ? error.stack : undefined,
-    })
-    return { error: 'An internal error occurred.' }
+        errorMessage: error instanceof Error ? error.message : String(error),
+        payload: payload,
+        stack: error instanceof Error ? error.stack : undefined,
+    });
+    return { history: [], error: 'An internal error occurred.' }
   }
 }

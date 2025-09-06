@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { continueConversation } from '@/actions/chat'
+import type { Content } from '@google/generative-ai'
 
-type Message = {
-  role: 'user' | 'model'
-  parts: { text: string }[]
-}
+// The Message type now directly uses the Content type from the SDK for perfect alignment
+type Message = Content
 
 type BotSettings = {
   welcome_message?: string
@@ -20,7 +19,6 @@ export default function ChatWidget({
   settings: BotSettings | null
   botId?: string
 }) {
-  // If the widget is embedded (has a botId), it should be open by default.
   const [isOpen, setIsOpen] = useState(!!botId)
   const [messages, setMessages] = useState<Message[]>([])
   const [userInput, setUserInput] = useState('')
@@ -46,14 +44,14 @@ export default function ChatWidget({
     setIsLoading(true)
 
     try {
-      // Call the unified server action, passing the botId if it exists
+      // Call the unified server action
       const result = await continueConversation({ messages: newMessages, botId })
 
-      if (result.text) {
-        const botMessage: Message = { role: 'model', parts: [{ text: result.text }] }
-        setMessages((prevMessages) => [...prevMessages, botMessage])
-      } else {
-        throw new Error(result.error || 'Failed to get response from bot.')
+      if (result.history && result.history.length > 0) {
+        // Replace the local history with the official one from the server
+        setMessages(result.history)
+      } else if (result.error) {
+         throw new Error(result.error)
       }
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -66,7 +64,7 @@ export default function ChatWidget({
       setIsLoading(false)
     }
   }
-  
+
   // If this is the public embedded widget, render only the chat window itself.
   if (botId) {
     return (
@@ -75,13 +73,16 @@ export default function ChatWidget({
             <h3 className="font-bold text-lg">Ariah Desk Assistant</h3>
           </div>
           <div className="flex-grow p-4 overflow-y-auto space-y-4">
-            {messages.map((message, index) => (
-              <div key={index} className={`flex ${ message.role === 'user' ? 'justify-end' : 'justify-start' }`}>
-                <div style={{ backgroundColor: message.role === 'user' ? primaryColor : undefined }} className={`px-4 py-2 rounded-lg max-w-xs ${ message.role === 'user' ? 'text-white' : 'bg-gray-200 text-gray-800' }`}>
-                  {message.parts[0].text}
+            {messages.map((message, index) => {
+              if (!message.parts[0]?.text) return null;
+              return (
+                <div key={index} className={`flex ${ message.role === 'user' ? 'justify-end' : 'justify-start' }`}>
+                  <div style={{ backgroundColor: message.role === 'user' ? primaryColor : undefined }} className={`px-4 py-2 rounded-lg max-w-xs ${ message.role === 'user' ? 'text-white' : 'bg-gray-200 text-gray-800' }`}>
+                    {message.parts[0].text}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {isLoading && (
               <div className="flex justify-start"><div className="px-4 py-2 rounded-lg max-w-xs bg-gray-200 text-gray-800">Typing...</div></div>
             )}
@@ -94,7 +95,7 @@ export default function ChatWidget({
     )
   }
 
-  // This is the dashboard preview, which includes the floating bubble.
+  // This is the dashboard preview with the floating bubble.
   return (
     <>
       {isOpen && (
@@ -102,20 +103,23 @@ export default function ChatWidget({
           <div style={{ backgroundColor: primaryColor }} className="text-white p-4 rounded-t-lg flex justify-between items-center">
             <h3 className="font-bold text-lg">Ariah Desk Assistant</h3>
             <button onClick={() => setIsOpen(false)} className="hover:opacity-75">
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
             </button>
           </div>
            <div className="flex-grow p-4 overflow-y-auto space-y-4">
-            {messages.map((message, index) => (
-              <div key={index} className={`flex ${ message.role === 'user' ? 'justify-end' : 'justify-start' }`}>
-                <div style={{ backgroundColor: message.role === 'user' ? primaryColor : undefined }} className={`px-4 py-2 rounded-lg max-w-xs ${ message.role === 'user' ? 'text-white' : 'bg-gray-200 text-gray-800' }`}>
-                  {message.parts[0].text}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start"><div className="px-4 py-2 rounded-lg max-w-xs bg-gray-200 text-gray-800">Typing...</div></div>
-            )}
+              {messages.map((message, index) => {
+                if (!message.parts[0]?.text) return null;
+                return (
+                  <div key={index} className={`flex ${ message.role === 'user' ? 'justify-end' : 'justify-start' }`}>
+                    <div style={{ backgroundColor: message.role === 'user' ? primaryColor : undefined }} className={`px-4 py-2 rounded-lg max-w-xs ${ message.role === 'user' ? 'text-white' : 'bg-gray-200 text-gray-800' }`}>
+                      {message.parts[0].text}
+                    </div>
+                  </div>
+                )
+              })}
+              {isLoading && (
+                <div className="flex justify-start"><div className="px-4 py-2 rounded-lg max-w-xs bg-gray-200 text-gray-800">Typing...</div></div>
+              )}
           </div>
           <form onSubmit={handleSendMessage} className="p-4 border-t bg-gray-50 flex gap-2">
             <input type="text" placeholder="Type your message..." value={userInput} onChange={(e) => setUserInput(e.target.value)} disabled={isLoading} className="flex-grow px-3 py-2 border rounded-md disabled:bg-gray-100" />
@@ -137,4 +141,3 @@ export default function ChatWidget({
     </>
   )
 }
-
