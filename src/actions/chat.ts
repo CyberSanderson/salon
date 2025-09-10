@@ -4,8 +4,8 @@ import {
   GoogleGenerativeAI,
   Tool,
   Content,
-  FunctionDeclarationSchemaType,
   Part,
+  // FIX: Removed the unused 'FunctionDeclarationSchemaType' import
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
