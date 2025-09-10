@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// Ensure the interface is exported so other files can use it
 export interface AppointmentDetails {
   service: string
   appointmentDate: string
@@ -22,8 +23,6 @@ export async function bookAppointment(details: AppointmentDetails) {
   }
 
   const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString()
-  
-  // FIX: Removed the unused 'data' variable
   const { error } = await supabase.from('appointments').insert([{
     user_id: user.id,
     service: details.service,
@@ -52,8 +51,6 @@ export async function bookPublicAppointment(details: AppointmentDetails, botId: 
   }
   
   const fullAppointmentTime = new Date(`${details.appointmentDate}T${details.appointmentTime}:00`).toISOString()
-
-  // FIX: Removed the unused 'data' variable
   const { error } = await supabaseAdmin.from('appointments').insert([{
     user_id: botId,
     service: details.service,

@@ -5,7 +5,7 @@ import {
   Tool,
   Content,
   Part,
-  // FIX: Removed the unused 'FunctionDeclarationSchemaType' import
+  // Note: We no longer need the problematic schema imports
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
@@ -31,14 +31,25 @@ interface ActionResponse {
   error?: string
 }
 
+// --- ACTION 1: For the secure, authenticated dashboard preview ---
 export async function continueAuthenticatedConversation(messages: Message[]): Promise<ActionResponse> {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) { throw new Error('User not authenticated for a private chat session.') }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated for a private chat session.')
+  }
 
   try {
-    const { data: botSettings } = await supabase.from('bots').select('*').eq('user_id', user.id).single()
-    if (!botSettings) { throw new Error('Bot settings not found.') }
+    const { data: botSettings } = await supabase
+      .from('bots')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+    if (!botSettings) {
+      throw new Error('Bot settings not found.')
+    }
 
     const model = getGenerativeModel(botSettings)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
@@ -48,26 +59,44 @@ export async function continueAuthenticatedConversation(messages: Message[]): Pr
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookAppointment(functionCall.args as AppointmentDetails)
-        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        const toolResult = await bookAppointment(
+          functionCall.args as AppointmentDetails
+        )
+        await chat.sendMessage([
+          { functionResponse: { name: 'bookAppointment', response: toolResult } },
+        ])
       }
     }
+
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continueAuthenticatedConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
+    console.error('Error in continueAuthenticatedConversation:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
 
+// --- ACTION 2: For the public, embeddable chat widget ---
 export async function continuePublicConversation(
   messages: Message[],
   botId: string
 ): Promise<ActionResponse> {
-  const supabaseAdmin = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { cookies: { get: (name: string) => { return cookies().get(name)?.value } } });
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { get: (name: string) => { return cookies().get(name)?.value } } }
+  );
 
   try {
-    const { data: botSettings } = await supabaseAdmin.from('bots').select('*').eq('user_id', botId).single()
-    if (!botSettings) { throw new Error('Bot settings not found for the provided botId.') }
+    const { data: botSettings } = await supabaseAdmin
+      .from('bots')
+      .select('*')
+      .eq('user_id', botId)
+      .single()
+    if (!botSettings) {
+      throw new Error('Bot settings not found for the provided botId.')
+    }
 
     const model = getGenerativeModel(botSettings)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
@@ -77,41 +106,61 @@ export async function continuePublicConversation(
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookPublicAppointment(functionCall.args as AppointmentDetails, botId)
-        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        const toolResult = await bookPublicAppointment(
+          functionCall.args as AppointmentDetails,
+          botId
+        )
+        await chat.sendMessage([
+          { functionResponse: { name: 'bookAppointment', response: toolResult } },
+        ])
       }
     }
+
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continuePublicConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
+    console.error('Error in continuePublicConversation:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
 
 // --- HELPER FUNCTIONS ---
-
-// FIX: Use the specific BotSettings type instead of 'any'
 function getGenerativeModel(botSettings: BotSettings) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   
-  // FIX: Use @ts-expect-error as it's the modern standard for this type of issue
-  // @ts-expect-error - The library types are strict, but this schema is valid for the API.
+  // --- THIS IS THE DEFINITIVE FIX ---
+  // We use the simpler string format that works at runtime and add a @ts-expect-error
+  // comment to tell TypeScript to trust us, breaking the error loop.
+  // @ts-expect-error - The library types are strict, but this JSON Schema is valid for the API.
   const tools: Tool[] = [
     {
       functionDeclarations: [
         {
           name: 'bookAppointment',
-          description: 'Books a salon appointment. Only call this function when you have collected all required parameters.',
+          description:
+            'Books a salon appointment. Only call this function when you have collected all required parameters.',
           parameters: {
             type: 'OBJECT',
             properties: {
               service: { type: 'STRING' },
-              appointmentDate: { type: 'STRING', description: 'The date in YYYY-MM-DD format.' },
-              appointmentTime: { type: 'STRING', description: 'The time in 24-hour HH:MM format.' },
+              appointmentDate: {
+                type: 'STRING',
+                description: 'The date in YYYY-MM-DD format.',
+              },
+              appointmentTime: {
+                type: 'STRING',
+                description: 'The time in 24-hour HH:MM format.',
+              },
               customerName: { type: 'STRING' },
               customerPhone: { type: 'STRING' },
             },
-            required: ['service', 'appointmentDate', 'appointmentTime', 'customerName'],
+            required: [
+              'service',
+              'appointmentDate',
+              'appointmentTime',
+              'customerName',
+            ],
           },
         },
       ],
@@ -133,17 +182,26 @@ function getGenerativeModel(botSettings: BotSettings) {
   })
 }
 
-// FIX: Use the specific BotSettings type instead of 'any'
 function getHistory(messages: Message[], botSettings: BotSettings): Content[] {
   let history = messages.slice(0, -1)
-  if (history.length > 0 && history[0].role === 'model' && history[0].parts[0].text === botSettings.welcome_message) {
-    if (messages.length === 2) { history = [] }
+  if (
+    history.length > 0 &&
+    history[0].role === 'model' &&
+    history[0].parts[0].text === botSettings.welcome_message
+  ) {
+    if (messages.length === 2) {
+      history = []
+    }
   }
   return history.map((msg) => ({
     role: msg.role,
     parts: msg.parts.map((part: Part) => {
-      if (part.functionCall) { return { functionCall: part.functionCall }; }
-      if (part.functionResponse) { return { functionResponse: part.functionResponse }; }
+      if (part.functionCall) {
+        return { functionCall: part.functionCall };
+      }
+      if (part.functionResponse) {
+        return { functionResponse: part.functionResponse };
+      }
       return { text: part.text || '' };
     }),
   }))
