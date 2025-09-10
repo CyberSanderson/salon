@@ -1,11 +1,11 @@
 'use client'
 
-import Link from 'next/link'
+// FIX: Removed the unused 'Link' import from 'next/link'
 import { motion } from 'framer-motion'
 
 export default function AffiliatePage() {
-  // A placeholder link to a Google Form where affiliates can apply
-  const googleFormLink = 'https://docs.google.com/forms/d/e/1FAIpQLSeNOeZJoKLPcDbxUwDfCp7KUSzzZA8XSuOVhq15MBIpFaSCzQ/viewform?usp=sharing&ouid=106585305711303122724'
+  // Remember to replace this with your actual Google Form link
+  const googleFormLink = 'YOUR_GOOGLE_FORM_LINK_HERE'
 
   return (
     <div className="bg-white">
@@ -38,7 +38,6 @@ export default function AffiliatePage() {
             Simple & Rewarding
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {/* Step 1 */}
             <div className="text-center">
               <div className="text-4xl font-bold text-teal-500 mb-2">1.</div>
               <h3 className="text-2xl font-semibold mb-2">Apply to Join</h3>
@@ -46,7 +45,6 @@ export default function AffiliatePage() {
                 Fill out our simple application form. We&apos;ll review it and provide you with a unique discount code to share with your audience.
               </p>
             </div>
-            {/* Step 2 */}
             <div className="text-center">
               <div className="text-4xl font-bold text-teal-500 mb-2">2.</div>
               <h3 className="text-2xl font-semibold mb-2">Share Your Code</h3>
@@ -54,7 +52,6 @@ export default function AffiliatePage() {
                 Promote Ariah Desk on your blog, social media, or with your clients. Your code will give them a special discount on our Pro plan.
               </p>
             </div>
-            {/* Step 3 */}
             <div className="text-center">
               <div className="text-4xl font-bold text-teal-500 mb-2">3.</div>
               <h3 className="text-2xl font-semibold mb-2">Earn Recurring Income</h3>
@@ -66,7 +63,6 @@ export default function AffiliatePage() {
         </div>
       </section>
       
-      {/* CTA Section */}
       <section className="bg-teal-500 py-20 text-white text-center">
         <div className="container mx-auto px-6">
           <h2 className="text-4xl font-bold">Ready to Partner Up?</h2>
