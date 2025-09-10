@@ -5,6 +5,7 @@ import {
   Tool,
   Content,
   Part,
+  SchemaType, // Correct enum for schema types
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
@@ -17,7 +18,7 @@ import { cookies } from 'next/headers'
 
 type Message = Content
 
-// Clear type for bot settings
+// Define a clear type for the bot settings object
 type BotSettings = {
   salon_name: string
   services: string
@@ -30,13 +31,17 @@ interface ActionResponse {
   error?: string
 }
 
-// --- ACTION 1: Authenticated chat ---
+// --- ACTION 1: For the secure, authenticated dashboard preview ---
 export async function continueAuthenticatedConversation(
   messages: Message[]
 ): Promise<ActionResponse> {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('User not authenticated for a private chat session.')
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated for a private chat session.')
+  }
 
   try {
     const { data: botSettings } = await supabase
@@ -44,30 +49,37 @@ export async function continueAuthenticatedConversation(
       .select('*')
       .eq('user_id', user.id)
       .single()
-
-    if (!botSettings) throw new Error('Bot settings not found.')
+    if (!botSettings) {
+      throw new Error('Bot settings not found.')
+    }
 
     const model = getGenerativeModel(botSettings)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
 
     const functionCalls = result.response.functionCalls()
-    if (functionCalls?.length) {
+    if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookAppointment(functionCall.args as AppointmentDetails)
-        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        const toolResult = await bookAppointment(
+          functionCall.args as AppointmentDetails
+        )
+        await chat.sendMessage([
+          { functionResponse: { name: 'bookAppointment', response: toolResult } },
+        ])
       }
     }
 
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continueAuthenticatedConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
+    console.error('Error in continueAuthenticatedConversation:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
 
-// --- ACTION 2: Public chat ---
+// --- ACTION 2: For the public, embeddable chat widget ---
 export async function continuePublicConversation(
   messages: Message[],
   botId: string
@@ -75,7 +87,11 @@ export async function continuePublicConversation(
   const supabaseAdmin = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { get: (name: string) => cookies().get(name)?.value } }
+    {
+      cookies: {
+        get: (name: string) => cookies().get(name)?.value,
+      },
+    }
   )
 
   try {
@@ -84,25 +100,33 @@ export async function continuePublicConversation(
       .select('*')
       .eq('user_id', botId)
       .single()
-
-    if (!botSettings) throw new Error('Bot settings not found for the provided botId.')
+    if (!botSettings) {
+      throw new Error('Bot settings not found for the provided botId.')
+    }
 
     const model = getGenerativeModel(botSettings)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
 
     const functionCalls = result.response.functionCalls()
-    if (functionCalls?.length) {
+    if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookPublicAppointment(functionCall.args as AppointmentDetails, botId)
-        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        const toolResult = await bookPublicAppointment(
+          functionCall.args as AppointmentDetails,
+          botId
+        )
+        await chat.sendMessage([
+          { functionResponse: { name: 'bookAppointment', response: toolResult } },
+        ])
       }
     }
 
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continuePublicConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
+    console.error('Error in continuePublicConversation:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
@@ -111,21 +135,27 @@ export async function continuePublicConversation(
 function getGenerativeModel(botSettings: BotSettings) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-  // Use string-based schema compatible with runtime; no ts-expect-error needed
   const tools: Tool[] = [
     {
       functionDeclarations: [
         {
           name: 'bookAppointment',
-          description: 'Books a salon appointment. Only call this function when you have collected all required parameters.',
+          description:
+            'Books a salon appointment. Only call this function when you have collected all required parameters.',
           parameters: {
-            type: 'OBJECT',
+            type: SchemaType.OBJECT,
             properties: {
-              service: { type: 'STRING' },
-              appointmentDate: { type: 'STRING', description: 'The date in YYYY-MM-DD format.' },
-              appointmentTime: { type: 'STRING', description: 'The time in 24-hour HH:MM format.' },
-              customerName: { type: 'STRING' },
-              customerPhone: { type: 'STRING' },
+              service: { type: SchemaType.STRING },
+              appointmentDate: {
+                type: SchemaType.STRING,
+                description: 'The date in YYYY-MM-DD format.',
+              },
+              appointmentTime: {
+                type: SchemaType.STRING,
+                description: 'The time in 24-hour HH:MM format.',
+              },
+              customerName: { type: SchemaType.STRING },
+              customerPhone: { type: SchemaType.STRING },
             },
             required: ['service', 'appointmentDate', 'appointmentTime', 'customerName'],
           },
@@ -151,10 +181,16 @@ SALON INFORMATION:
 
 function getHistory(messages: Message[], botSettings: BotSettings): Content[] {
   let history = messages.slice(0, -1)
-  if (history.length > 0 && history[0].role === 'model' && history[0].parts[0].text === botSettings.welcome_message) {
-    if (messages.length === 2) history = []
+  if (
+    history.length > 0 &&
+    history[0].role === 'model' &&
+    history[0].parts[0].text === botSettings.welcome_message
+  ) {
+    if (messages.length === 2) {
+      history = []
+    }
   }
-  return history.map(msg => ({
+  return history.map((msg) => ({
     role: msg.role,
     parts: msg.parts.map((part: Part) => {
       if (part.functionCall) return { functionCall: part.functionCall }
