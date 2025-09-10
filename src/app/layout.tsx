@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
-import Footer from '@/components/Footer'
+import Footer from '@/components/footer' // <-- The fix is here (Capital 'F')
 import Header from '@/components/Header'
 
 const poppins = Poppins({
