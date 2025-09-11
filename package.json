@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@formspree/react": "^3.0.0",
     "@google/generative-ai": "^0.24.1",
     "@stripe/stripe-js": "^7.9.0",
     "@supabase/ssr": "^0.7.0",
