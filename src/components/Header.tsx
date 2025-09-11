@@ -1,9 +1,9 @@
 'use client'
 
+import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 export default function Header() {
@@ -33,18 +33,24 @@ export default function Header() {
       <div className="container mx-auto flex justify-between items-center p-4">
         <Link href="/">
           <Image
-            src="/icon.png" // Path to your new logo in the public folder
+            src="/icon.png"
             alt="Ariah Desk Logo"
-            width={140} // Increased width for the new design
-            height={50}  // Increased height for the new design
+            width={120}
+            height={40}
             priority
           />
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* --- DESKTOP NAVIGATION UPDATED --- */}
         <nav className="hidden md:flex items-center gap-6">
+          <Link href="/#features" className="text-gray-600 hover:text-teal-500">
+            Features
+          </Link>
           <Link href="/#pricing" className="text-gray-600 hover:text-teal-500">
             Pricing
+          </Link>
+          <Link href="/about" className="text-gray-600 hover:text-teal-500">
+            About
           </Link>
           <Link href="/blog" className="text-gray-600 hover:text-teal-500">
             Blog
@@ -103,22 +109,20 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu (Dropdown) */}
+      {/* --- MOBILE MENU UPDATED --- */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t">
           <nav className="flex flex-col items-center gap-4 p-4">
-            <Link
-              href="/#pricing"
-              className="text-gray-600 hover:text-teal-500"
-              onClick={() => setIsMenuOpen(false)}
-            >
+            <Link href="/#features" className="text-gray-600 hover:text-teal-500" onClick={() => setIsMenuOpen(false)}>
+              Features
+            </Link>
+            <Link href="/#pricing" className="text-gray-600 hover:text-teal-500" onClick={() => setIsMenuOpen(false)}>
               Pricing
             </Link>
-            <Link
-              href="/blog"
-              className="text-gray-600 hover:text-teal-500"
-              onClick={() => setIsMenuOpen(false)}
-            >
+            <Link href="/about" className="text-gray-600 hover:text-teal-500" onClick={() => setIsMenuOpen(false)}>
+              About
+            </Link>
+            <Link href="/blog" className="text-gray-600 hover:text-teal-500" onClick={() => setIsMenuOpen(false)}>
               Blog
             </Link>
             
@@ -126,26 +130,15 @@ export default function Header() {
               <>
                 {user ? (
                   <>
-                    <Link
-                      href="/dashboard"
-                      className="text-gray-600 hover:text-teal-500"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
+                    <Link href="/dashboard" className="text-gray-600 hover:text-teal-500" onClick={() => setIsMenuOpen(false)}>
                       Dashboard
                     </Link>
-                    <button
-                      onClick={signOut}
-                      className="w-full bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-                    >
+                    <button onClick={signOut} className="w-full bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
                       Logout
                     </button>
                   </>
                 ) : (
-                  <Link
-                    href="/login"
-                    className="w-full text-center bg-teal-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  <Link href="/login" className="w-full text-center bg-teal-500 text-white font-semibold px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors" onClick={() => setIsMenuOpen(false)}>
                     Login
                   </Link>
                 )}
