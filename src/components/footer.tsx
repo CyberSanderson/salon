@@ -30,6 +30,12 @@ export default function Footer() {
               Affiliates
             </Link>
             <Link
+              href="/contact"
+              className="text-gray-600 hover:text-teal-500 mx-3"
+            >
+              Contact
+            </Link>
+            <Link
               href="/terms-of-service"
               className="text-gray-600 hover:text-teal-500 mx-3"
             >
