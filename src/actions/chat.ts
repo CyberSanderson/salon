@@ -5,7 +5,7 @@ import {
   Tool,
   Content,
   Part,
-  SchemaType, // Correct enum for schema types
+  SchemaType, // The correct enum for schema types
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {

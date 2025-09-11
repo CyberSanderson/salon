@@ -1,12 +1,8 @@
 'use client'
 
-// FIX: Removed the unused 'Link' import from 'next/link'
 import { motion } from 'framer-motion'
 
 export default function AffiliatePage() {
-  // Remember to replace this with your actual Google Form link
-  const googleFormLink = 'YOUR_GOOGLE_FORM_LINK_HERE'
-
   return (
     <div className="bg-white">
       {/* Hero Section */}
@@ -63,6 +59,7 @@ export default function AffiliatePage() {
         </div>
       </section>
       
+      {/* --- THIS IS THE CORRECTED SECTION --- */}
       <section className="bg-teal-500 py-20 text-white text-center">
         <div className="container mx-auto px-6">
           <h2 className="text-4xl font-bold">Ready to Partner Up?</h2>
@@ -70,8 +67,8 @@ export default function AffiliatePage() {
             Become an Ariah Desk partner today and start earning.
           </p>
           <a
-            href={googleFormLink}
-            target="_blank"
+            href="https://docs.google.com/forms/d/e/1FAIpQLSeNOeZJoKLPcDbxUwDfCp7KUSzzZA8XSuOVhq15MBIpFaSCzQ/viewform?usp=header"
+            target="_blank" // This tells the browser to open the link in a new tab
             rel="noopener noreferrer"
             className="mt-8 inline-block px-8 py-3 bg-yellow-500 text-white font-semibold rounded-full shadow-lg hover:bg-yellow-600 transition-colors"
           >
