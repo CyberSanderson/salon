@@ -41,7 +41,7 @@ export default function AboutPage() {
               className="w-full md:w-1/2"
             >
               <Image
-                src="/sande-headshot.png"
+                src="/sanderson.png"
                 alt="Sande, Founder of Ariah Desk"
                 width={500}
                 height={500}

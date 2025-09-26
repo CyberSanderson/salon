@@ -7,7 +7,6 @@ import {
 } from '@/actions/chat'
 import type { Content } from '@google/generative-ai'
 
-// The Message type now directly uses the Content type from the SDK for perfect alignment
 type Message = Content
 
 type BotSettings = {
@@ -22,6 +21,7 @@ export default function ChatWidget({
   settings: BotSettings | null
   botId?: string
 }) {
+  // If the widget is embedded (has a botId), it should be open by default.
   const [isOpen, setIsOpen] = useState(!!botId)
   const [messages, setMessages] = useState<Message[]>([])
   const [userInput, setUserInput] = useState('')
@@ -86,8 +86,6 @@ export default function ChatWidget({
         </div>
         <div className="flex-grow p-4 overflow-y-auto space-y-4">
           {messages.map((message, index) => {
-            // The Gemini history can sometimes include tool call/response parts that have no text.
-            // We need to filter those out so they don't render an empty bubble.
             const messageText = message.parts[0]?.text
             if (!messageText) return null
             return (

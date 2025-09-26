@@ -203,7 +203,7 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="w-48 h-48 md:w-64 md:h-64 rounded-full bg-white shadow-lg flex-shrink-0 overflow-hidden">
-              <Image src="/sande-headshot.png" alt="Sande, Founder of Ariah Desk" width={256} height={256} className="w-full h-full object-cover" />
+              <Image src="/sanderson.png" alt="Sande, Founder of Ariah Desk" width={256} height={256} className="w-full h-full object-cover" />
             </div>
             <div className="text-center md:text-left">
               <h2 className="text-4xl font-bold text-gray-800">From One Business Owner to Another</h2>

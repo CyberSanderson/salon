@@ -17,14 +17,24 @@ export default async function DashboardPage() {
     return redirect('/login')
   }
 
-  // Fetch both the bot settings AND the appointments in parallel for efficiency
-  const [
-    { data: botSettings },
-    { data: appointments }
-  ] = await Promise.all([
-    supabase.from('bots').select('*').eq('user_id', user.id).single(),
-    supabase.from('appointments').select('*').eq('user_id', user.id).order('appointment_time', { ascending: false })
-  ]);
+  // --- THE DEFINITIVE FIX IS HERE ---
+  // We now fetch the data in a more resilient way that doesn't crash for new users.
+  
+  // Fetch bot settings using .maybeSingle().
+  // This is the perfect tool for this job: it returns one row OR null,
+  // but it does not throw an error if no row is found.
+  const { data: botSettings } = await supabase
+    .from('bots')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle(); 
+
+  // Fetch appointments. This query is already safe as it returns an array (which will be empty for a new user).
+  const { data: appointments } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('appointment_time', { ascending: false });
 
   return (
     <div className="container mx-auto px-6 py-12">
@@ -36,16 +46,10 @@ export default async function DashboardPage() {
         your subscription below.
       </p>
 
-      {/* The installation code snippet for the user's website */}
       <InstallationCode userId={user.id} />
-
-      {/* The list of appointments booked by the bot */}
       <AppointmentsList appointments={appointments} />
-
-      {/* The form for configuring the chatbot */}
       <ChatbotForm initialData={botSettings} />
 
-      {/* The section for managing the subscription */}
       <div className="mt-8 p-6 bg-white border rounded-lg shadow-sm">
         <h2 className="text-xl font-semibold">Subscription Status</h2>
         <p className="mt-2 text-gray-500">
@@ -54,7 +58,9 @@ export default async function DashboardPage() {
         <SubscriptionButton />
       </div>
       
-      {/* The live preview of the chat widget */}
+      {/* We pass the (potentially null) settings to the widget.
+          The widget is already designed to handle this gracefully.
+      */}
       <ChatWidget settings={botSettings} botId={user.id} />
     </div>
   )
