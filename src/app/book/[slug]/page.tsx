@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
-import "../../globals.css"; // Note the path is different here
+import "../../globals.css"; // adjust path if needed
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -11,19 +11,11 @@ export const metadata: Metadata = {
   title: "Book an Appointment",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function BookPage() {
   return (
-    <html lang="en">
-      <body className={poppins.className}>
-        {/* This layout is intentionally minimalist and has no header or footer. */}
-        {children}
-      </body>
-    </html>
+    <div className={poppins.className}>
+      {/* Your page content goes here */}
+      <h1>Book an Appointment</h1>
+    </div>
   );
 }
-
-

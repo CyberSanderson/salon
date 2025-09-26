@@ -5,7 +5,6 @@ import {
   Tool,
   Content,
   Part,
-  SchemaType, // The correct enum for schema types
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
@@ -18,12 +17,12 @@ import { cookies } from 'next/headers'
 
 type Message = Content
 
-// Define a clear type for the bot settings object
+// Define a clear type for the bot settings object to avoid using 'any'
 type BotSettings = {
-  salon_name: string
-  services: string
-  hours: string
-  welcome_message: string
+  salon_name: string;
+  services: string;
+  hours: string;
+  welcome_message: string;
 }
 
 interface ActionResponse {
@@ -32,9 +31,7 @@ interface ActionResponse {
 }
 
 // --- ACTION 1: For the secure, authenticated dashboard preview ---
-export async function continueAuthenticatedConversation(
-  messages: Message[]
-): Promise<ActionResponse> {
+export async function continueAuthenticatedConversation(messages: Message[]): Promise<ActionResponse> {
   const supabase = createClient()
   const {
     data: { user },
@@ -87,12 +84,8 @@ export async function continuePublicConversation(
   const supabaseAdmin = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get: (name: string) => cookies().get(name)?.value,
-      },
-    }
-  )
+    { cookies: { get: (name: string) => { return cookies().get(name)?.value } } }
+  );
 
   try {
     const { data: botSettings } = await supabaseAdmin
@@ -134,7 +127,7 @@ export async function continuePublicConversation(
 // --- HELPER FUNCTIONS ---
 function getGenerativeModel(botSettings: BotSettings) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
+  
   const tools: Tool[] = [
     {
       functionDeclarations: [
@@ -143,21 +136,26 @@ function getGenerativeModel(botSettings: BotSettings) {
           description:
             'Books a salon appointment. Only call this function when you have collected all required parameters.',
           parameters: {
-            type: SchemaType.OBJECT,
+            type: 'OBJECT',
             properties: {
-              service: { type: SchemaType.STRING },
+              service: { type: 'STRING' },
               appointmentDate: {
-                type: SchemaType.STRING,
+                type: 'STRING',
                 description: 'The date in YYYY-MM-DD format.',
               },
               appointmentTime: {
-                type: SchemaType.STRING,
+                type: 'STRING',
                 description: 'The time in 24-hour HH:MM format.',
               },
-              customerName: { type: SchemaType.STRING },
-              customerPhone: { type: SchemaType.STRING },
+              customerName: { type: 'STRING' },
+              customerPhone: { type: 'STRING' },
             },
-            required: ['service', 'appointmentDate', 'appointmentTime', 'customerName'],
+            required: [
+              'service',
+              'appointmentDate',
+              'appointmentTime',
+              'customerName',
+            ],
           },
         },
       ],
@@ -165,16 +163,18 @@ function getGenerativeModel(botSettings: BotSettings) {
   ]
 
   return genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash-latest',
+    // --- THIS IS THE FINAL UPGRADE ---
+    // We are now pinning to the latest, most powerful, and stable Flash model.
+    model: 'gemini-2.5-flash',
     systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your goal is to book appointments and answer questions based ONLY on the salon information provided.
-CRITICAL RULES:
-1. GATHER ALL INFO: You MUST NOT call the 'bookAppointment' tool until you have collected ALL required information: the service, the date, the time, AND the customer's name.
-2. VERIFY BUSINESS HOURS: Before calling the tool, you MUST check the requested time against the "Business Hours". If it's outside these hours, inform the user and ask for a different time.
-3. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. You must convert all dates (e.g., "next Tuesday") into 'YYYY-MM-DD' format and all times (e.g., "2pm") into 24-hour 'HH:MM' format.
-
-SALON INFORMATION:
-- Services and Prices: ${botSettings.services}
-- Business Hours: ${botSettings.hours}`,
+      CRITICAL RULES:
+      1. GATHER ALL INFO: You MUST NOT call the 'bookAppointment' tool until you have collected ALL required information: the service, the date, the time, AND the customer's name.
+      2. VERIFY BUSINESS HOURS: Before calling the tool, you MUST check the requested time against the "Business Hours". If it's outside these hours, inform the user and ask for a different time.
+      3. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. You must convert all dates (e.g., "next Tuesday") into 'YYYY-MM-DD' format and all times (e.g., "2pm") into 24-hour 'HH:MM' format.
+      
+      SALON INFORMATION:
+      - Services and Prices: ${botSettings.services}
+      - Business Hours: ${botSettings.hours}`,
     tools: tools,
   })
 }
@@ -193,9 +193,13 @@ function getHistory(messages: Message[], botSettings: BotSettings): Content[] {
   return history.map((msg) => ({
     role: msg.role,
     parts: msg.parts.map((part: Part) => {
-      if (part.functionCall) return { functionCall: part.functionCall }
-      if (part.functionResponse) return { functionResponse: part.functionResponse }
-      return { text: part.text || '' }
+      if (part.functionCall) {
+        return { functionCall: part.functionCall };
+      }
+      if (part.functionResponse) {
+        return { functionResponse: part.functionResponse };
+      }
+      return { text: part.text || '' };
     }),
   }))
 }
