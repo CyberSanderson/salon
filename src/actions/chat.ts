@@ -128,7 +128,7 @@ export async function continuePublicConversation(
 function getGenerativeModel(botSettings: BotSettings) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   
-  // @ts-expect-error - The library types are strict, but this JSON Schema is valid for the API.
+  // This is the clean, final version of the tools definition
   const tools: Tool[] = [
     {
       functionDeclarations: [
@@ -164,9 +164,7 @@ function getGenerativeModel(botSettings: BotSettings) {
   ]
 
   return genAI.getGenerativeModel({
-    // --- THIS IS THE FINAL UPGRADE ---
-    // We are now pinning to the latest, most powerful, and stable Flash model.
-    model: 'gemini-2.5-flash',
+    model: 'gemini-1.5-flash',
     systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your goal is to book appointments and answer questions based ONLY on the salon information provided.
       CRITICAL RULES:
       1. GATHER ALL INFO: You MUST NOT call the 'bookAppointment' tool until you have collected ALL required information: the service, the date, the time, AND the customer's name.
