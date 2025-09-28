@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
-import "../globals.css";
- // Note the path is different here
+import "../globals.css"; // This correctly points to your global styles
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -9,7 +8,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Book an Appointment",
+  title: "Book an Appointment | Ariah Desk",
 };
 
 export default function RootLayout({
@@ -20,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={poppins.className}>
-        {/* This layout is intentionally minimalist and has no header or footer. */}
+        {/* This layout is intentionally minimalist. It has no Header or Footer. */}
         {children}
       </body>
     </html>
