@@ -128,6 +128,7 @@ export async function continuePublicConversation(
 function getGenerativeModel(botSettings: BotSettings) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   
+  // @ts-expect-error - The library types are strict, but this JSON Schema is valid for the API.
   const tools: Tool[] = [
     {
       functionDeclarations: [
