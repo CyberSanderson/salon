@@ -208,7 +208,7 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
             <div className="text-center md:text-left">
               <h2 className="text-4xl font-bold text-gray-800">From One Business Owner to Another</h2>
               <p className="mt-4 text-lg text-gray-600">&quot;I created Ariah Desk because I saw so many talented service providers, especially in the beauty industry, overwhelmed by the administrative side of their business. My goal is to give you back your most valuable asset—your time—so you can focus on your clients and your craft.&quot;</p>
-              <p className="mt-4 font-semibold text-gray-800">Sande, Founder of Ariah Desk</p>
+              <p className="mt-4 font-semibold text-gray-800">Sanderson, Founder of Ariah Desk</p>
             </div>
           </div>
         </div>

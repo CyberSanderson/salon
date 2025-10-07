@@ -51,7 +51,7 @@ export default function AboutPage() {
             <div className="w-full md:w-1/2 text-left">
               <h2 className="text-4xl font-bold text-gray-800">The Story Behind the Desk</h2>
               <p className="mt-4 text-lg text-gray-600">
-                My name is Sande, and I&apos;m the founder of Ariah Desk. I created this company because I saw firsthand how many brilliant salon owners and stylists were getting bogged down by the endless administrative tasks that come with running a business. Late-night DMs, missed calls, and the constant back-and-forth of scheduling were stealing their time and their passion.
+                My name is Sanderson, and I&apos;m the founder of Ariah Desk. I created this company because I saw firsthand how many brilliant salon owners and stylists were getting bogged down by the endless administrative tasks that come with running a business. Late-night DMs, missed calls, and the constant back-and-forth of scheduling were stealing their time and their passion.
               </p>
               <p className="mt-4 text-lg text-gray-600">
                 I knew there had to be a better way. With a background in full-stack development from Harvard, I decided to build a solution. Not just another generic tool, but a smart, elegant, and intuitive AI assistant designed specifically for the unique needs of the beauty industry.
