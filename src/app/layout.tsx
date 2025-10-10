@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
-import Footer from '@/components/footer' 
+import Footer from '@/components/footer'
 import Header from '@/components/Header'
 
 const poppins = Poppins({
@@ -23,13 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={poppins.className}>
-        {/* Meta Pixel noscript fallback */}
         <noscript>
           <img
             height="1"
             width="1"
             style={{ display: 'none' }}
             src="https://www.facebook.com/tr?id=1441828204616933&ev=PageView&noscript=1"
+            alt="" // FIX: Added empty alt tag for accessibility
           />
         </noscript>
 
