@@ -42,4 +42,12 @@
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
+
+  <url>
+    <loc>https://www.ariahdesk.com/blog/5-instagram-posts-that-get-bookings</loc>
+    <lastmod>2025-10-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
 </urlset>
