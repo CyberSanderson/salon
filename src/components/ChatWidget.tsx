@@ -21,6 +21,9 @@ export default function ChatWidget({
   settings: BotSettings | null
   botId?: string
 }) {
+  // --- THIS IS THE CRITICAL FIX ---
+  // All hooks must be called at the top level of the component.
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([])
   const [userInput, setUserInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -68,7 +71,6 @@ export default function ChatWidget({
   };
 
   const handleMinimize = () => {
-    // This sends a message to the parent window (the external site) to hide the iframe
     window.parent.postMessage('ariah-desk-minimize', '*');
   };
 
@@ -107,9 +109,6 @@ export default function ChatWidget({
   }
 
   // This is the dashboard preview with the floating bubble.
-  // We re-introduce the 'isOpen' state here for this specific case.
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-
   return (
     <>
       {isDashboardOpen && (
