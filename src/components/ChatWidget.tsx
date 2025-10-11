@@ -16,17 +16,15 @@ type BotSettings = {
 
 export default function ChatWidget({
   settings,
-  botId, // botId is optional. If provided, it's a public widget.
+  botId,
 }: {
   settings: BotSettings | null
   botId?: string
 }) {
-  // If the widget is embedded (has a botId), it should be open by default.
   const [isOpen, setIsOpen] = useState(!!botId)
   const [messages, setMessages] = useState<Message[]>([])
   const [userInput, setUserInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-
   const primaryColor = settings?.primary_color || '#14B8A6'
 
   useEffect(() => {
@@ -41,19 +39,18 @@ export default function ChatWidget({
 
     const userMessage: Message = { role: 'user', parts: [{ text: userInput }] }
     const newMessages = [...messages, userMessage]
-
     setMessages(newMessages)
     setUserInput('')
     setIsLoading(true)
 
     try {
-      // Decide which action to call based on the context (public widget vs. dashboard preview)
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
       const result = botId
-        ? await continuePublicConversation(newMessages, botId)
-        : await continueAuthenticatedConversation(newMessages)
+        ? await continuePublicConversation(newMessages, botId, userTimeZone)
+        : await continueAuthenticatedConversation(newMessages, userTimeZone)
 
       if (result.history && result.history.length > 0) {
-        // We replace our local history with the official one from the server.
         setMessages(result.history)
       } else if (result.error) {
         throw new Error(result.error)
@@ -68,14 +65,14 @@ export default function ChatWidget({
           },
         ],
       }
-      setMessages((prevMessages) => [...prevMessages, errorMessage])
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
   }
 
-  // If this is the public embedded widget, render only the chat window itself.
   if (botId) {
+    // Embedded widget
     return (
       <div className="w-full h-full bg-white flex flex-col">
         <div
@@ -85,12 +82,12 @@ export default function ChatWidget({
           <h3 className="font-bold text-lg">Ariah Desk Assistant</h3>
         </div>
         <div className="flex-grow p-4 overflow-y-auto space-y-4">
-          {messages.map((message, index) => {
-            const messageText = message.parts[0]?.text
-            if (!messageText) return null
+          {messages.map((message, i) => {
+            const text = message.parts[0]?.text
+            if (!text) return null
             return (
               <div
-                key={index}
+                key={i}
                 className={`flex ${
                   message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}
@@ -106,14 +103,14 @@ export default function ChatWidget({
                       : 'bg-gray-200 text-gray-800'
                   }`}
                 >
-                  {messageText}
+                  {text}
                 </div>
               </div>
             )
           })}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="px-4 py-2 rounded-lg max-w-xs bg-gray-200 text-gray-800">
+              <div className="px-4 py-2 rounded-lg bg-gray-200 text-gray-800">
                 Typing...
               </div>
             </div>
@@ -144,7 +141,7 @@ export default function ChatWidget({
     )
   }
 
-  // This is the dashboard preview with the floating bubble.
+  // Dashboard floating bubble
   return (
     <>
       {isOpen && (
@@ -154,60 +151,37 @@ export default function ChatWidget({
             className="text-white p-4 rounded-t-lg flex justify-between items-center"
           >
             <h3 className="font-bold text-lg">Ariah Desk Assistant</h3>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="hover:opacity-75"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                />
-              </svg>
+            <button onClick={() => setIsOpen(false)} className="hover:opacity-75">
+              ✕
             </button>
           </div>
           <div className="flex-grow p-4 overflow-y-auto space-y-4">
-            {messages.map((message, index) => {
-              const messageText = message.parts[0]?.text
-              if (!messageText) return null
+            {messages.map((m, i) => {
+              const t = m.parts[0]?.text
+              if (!t) return null
               return (
                 <div
-                  key={index}
+                  key={i}
                   className={`flex ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                    m.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
                   <div
                     style={{
                       backgroundColor:
-                        message.role === 'user' ? primaryColor : undefined,
+                        m.role === 'user' ? primaryColor : undefined,
                     }}
                     className={`px-4 py-2 rounded-lg max-w-xs ${
-                      message.role === 'user'
+                      m.role === 'user'
                         ? 'text-white'
                         : 'bg-gray-200 text-gray-800'
                     }`}
                   >
-                    {messageText}
+                    {t}
                   </div>
                 </div>
               )
             })}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="px-4 py-2 rounded-lg max-w-xs bg-gray-200 text-gray-800">
-                  Typing...
-                </div>
-              </div>
-            )}
           </div>
           <form
             onSubmit={handleSendMessage}
@@ -235,39 +209,9 @@ export default function ChatWidget({
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{ backgroundColor: primaryColor }}
-        className="fixed bottom-5 right-5 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-10"
+        className="fixed bottom-5 right-5 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 z-10"
       >
-        {isOpen ? (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="w-8 h-8"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-            />
-          </svg>
-        ) : (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-8 h-8"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
-            />
-          </svg>
-        )}
+        💬
       </button>
     </>
   )
