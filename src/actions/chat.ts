@@ -18,7 +18,6 @@ import { cookies } from 'next/headers'
 
 type Message = Content
 
-// Define a clear type for the bot settings object
 type BotSettings = {
   salon_name: string
   services: string
@@ -31,110 +30,64 @@ interface ActionResponse {
   error?: string
 }
 
-// --- ACTION 1: For the secure, authenticated dashboard preview ---
-export async function continueAuthenticatedConversation(
-  messages: Message[]
-): Promise<ActionResponse> {
+// The actions now accept the timeZone as part of a single payload object
+export async function continueAuthenticatedConversation(payload: { messages: Message[], timeZone: string }): Promise<ActionResponse> {
+  const { messages, timeZone } = payload;
   const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated for a private chat session.')
-  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) { throw new Error('User not authenticated.') }
 
   try {
-    const { data: botSettings } = await supabase
-      .from('bots')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-    if (!botSettings) {
-      throw new Error('Bot settings not found.')
-    }
+    const { data: botSettings } = await supabase.from('bots').select('*').eq('user_id', user.id).single()
+    if (!botSettings) { throw new Error('Bot settings not found.') }
 
-    const model = getGenerativeModel(botSettings)
+    const model = getGenerativeModel(botSettings, timeZone)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
-
     const functionCalls = result.response.functionCalls()
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookAppointment(
-          functionCall.args as AppointmentDetails
-        )
-        await chat.sendMessage([
-          { functionResponse: { name: 'bookAppointment', response: toolResult } },
-        ])
+        const toolResult = await bookAppointment(functionCall.args as AppointmentDetails)
+        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
       }
     }
-
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continueAuthenticatedConversation:', {
-      errorMessage: error instanceof Error ? error.message : String(error),
-    })
+    console.error('Error in continueAuthenticatedConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
 
-// --- ACTION 2: For the public, embeddable chat widget ---
-export async function continuePublicConversation(
-  messages: Message[],
-  botId: string
-): Promise<ActionResponse> {
-  const supabaseAdmin = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        get: (name: string) => cookies().get(name)?.value,
-      },
-    }
-  )
+export async function continuePublicConversation(payload: { messages: Message[], botId: string, timeZone: string }): Promise<ActionResponse> {
+  const { messages, botId, timeZone } = payload;
+  const supabaseAdmin = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { cookies: { get: (name: string) => cookies().get(name)?.value } });
 
   try {
-    const { data: botSettings } = await supabaseAdmin
-      .from('bots')
-      .select('*')
-      .eq('user_id', botId)
-      .single()
-    if (!botSettings) {
-      throw new Error('Bot settings not found for the provided botId.')
-    }
+    const { data: botSettings } = await supabaseAdmin.from('bots').select('*').eq('user_id', botId).single()
+    if (!botSettings) { throw new Error('Bot settings not found.') }
 
-    const model = getGenerativeModel(botSettings)
+    const model = getGenerativeModel(botSettings, timeZone)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
-
     const functionCalls = result.response.functionCalls()
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookPublicAppointment(
-          functionCall.args as AppointmentDetails,
-          botId
-        )
-        await chat.sendMessage([
-          { functionResponse: { name: 'bookAppointment', response: toolResult } },
-        ])
+        const toolResult = await bookPublicAppointment(functionCall.args as AppointmentDetails, botId)
+        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
       }
     }
-
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continuePublicConversation:', {
-      errorMessage: error instanceof Error ? error.message : String(error),
-    })
+    console.error('Error in continuePublicConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
 
 // --- HELPER FUNCTIONS ---
-function getGenerativeModel(botSettings: BotSettings) {
+function getGenerativeModel(botSettings: BotSettings, timeZone: string = 'UTC') {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-
   const tools: Tool[] = [
     {
       functionDeclarations: [
@@ -165,18 +118,18 @@ function getGenerativeModel(botSettings: BotSettings) {
   ]
 
   return genAI.getGenerativeModel({
-    // --- THIS IS THE DEFINITIVE FIX ---
-    // We are now pinning to the latest, most powerful, and stable Flash model.
     model: 'gemini-2.5-flash',
-    systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your goal is to book appointments and answer questions based ONLY on the salon information provided.
-CRITICAL RULES:
-1. GATHER ALL INFO: You MUST NOT call the 'bookAppointment' tool until you have collected ALL required information: the service, the date, the time, AND the customer's name.
-2. VERIFY BUSINESS HOURS: Before calling the tool, you MUST check the requested time against the "Business Hours". If it's outside these hours, inform the user and ask for a different time.
-3. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. You must convert all dates (e.g., "next Tuesday") into 'YYYY-MM-DD' format and all times (e.g., "2pm") into 24-hour 'HH:MM' format.
+    systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your primary goal is to book appointments.
+    
+    CRITICAL RULES:
+    1. TIME ZONE AWARENESS: You MUST assume the user is in the '${timeZone}' time zone. All date and time calculations you perform MUST be relative to this time zone.
+    2. GATHER ALL INFO: You MUST NOT call 'bookAppointment' until you have: the service, the date, the time, AND the customer's name.
+    3. VERIFY HOURS: Check the requested time against business hours before booking.
+    4. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. Convert all dates to 'YYYY-MM-DD' and times to 'HH:MM' format, based on the user's '${timeZone}' time zone.
 
-SALON INFORMATION:
-- Services and Prices: ${botSettings.services}
-- Business Hours: ${botSettings.hours}`,
+    SALON INFORMATION:
+    - Services: ${botSettings.services}
+    - Hours: ${botSettings.hours}`,
     tools: tools,
   })
 }
