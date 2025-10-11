@@ -198,4 +198,3 @@ function getHistory(messages: Message[], botSettings: BotSettings): Content[] {
     }),
   }))
 }
-

@@ -66,4 +66,3 @@ export async function bookPublicAppointment(details: AppointmentDetails, botId: 
   }
   return { success: `Appointment successfully booked for ${details.customerName}!` }
 }
-
