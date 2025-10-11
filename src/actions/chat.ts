@@ -5,6 +5,7 @@ import {
   Tool,
   Content,
   Part,
+  SchemaType, // The correct enum for schema types
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
@@ -17,6 +18,7 @@ import { cookies } from 'next/headers'
 
 type Message = Content
 
+// Define a clear type for the bot settings object
 type BotSettings = {
   salon_name: string
   services: string
@@ -24,22 +26,16 @@ type BotSettings = {
   welcome_message: string
 }
 
-interface ConversationPayload {
-  messages: Message[]
-  botId?: string
-  timeZone?: string
-}
-
 interface ActionResponse {
   history: Content[]
   error?: string
 }
 
+// --- ACTION 1: For the secure, authenticated dashboard preview ---
 export async function continueAuthenticatedConversation(
-  payload: ConversationPayload
+  payload: { messages: Message[], timeZone?: string }
 ): Promise<ActionResponse> {
-  // FIX: Removed the unused 'timeZone' variable from destructuring
-  const { messages } = payload;
+  const { messages, timeZone } = payload;
   const supabase = createClient()
   const {
     data: { user },
@@ -58,7 +54,7 @@ export async function continueAuthenticatedConversation(
       throw new Error('Bot settings not found.')
     }
 
-    const model = getGenerativeModel(botSettings) // timeZone is no longer passed
+    const model = getGenerativeModel(botSettings, timeZone)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
 
@@ -84,11 +80,11 @@ export async function continueAuthenticatedConversation(
   }
 }
 
+// --- ACTION 2: For the public, embeddable chat widget ---
 export async function continuePublicConversation(
-  payload: ConversationPayload
+  payload: { messages: Message[], botId?: string, timeZone?: string }
 ): Promise<ActionResponse> {
-  // FIX: Removed the unused 'timeZone' variable from destructuring
-  const { messages, botId } = payload
+  const { messages, botId, timeZone } = payload
   if (!botId) {
     throw new Error('Bot ID is required for public conversation.')
   }
@@ -113,7 +109,7 @@ export async function continuePublicConversation(
       throw new Error('Bot settings not found for the provided botId.')
     }
 
-    const model = getGenerativeModel(botSettings) // timeZone is no longer passed
+    const model = getGenerativeModel(botSettings, timeZone)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
 
@@ -141,8 +137,9 @@ export async function continuePublicConversation(
 }
 
 // --- HELPER FUNCTIONS ---
-function getGenerativeModel(botSettings: BotSettings) {
+function getGenerativeModel(botSettings: BotSettings, timeZone: string = 'UTC') {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+
   const tools: Tool[] = [
     {
       functionDeclarations: [
@@ -151,19 +148,19 @@ function getGenerativeModel(botSettings: BotSettings) {
           description:
             'Books a salon appointment. Only call this function when you have collected all required parameters.',
           parameters: {
-            type: 'object',
+            type: SchemaType.OBJECT,
             properties: {
-              service: { type: 'string' },
+              service: { type: SchemaType.STRING },
               appointmentDate: {
-                type: 'string',
+                type: SchemaType.STRING,
                 description: 'The date in YYYY-MM-DD format.',
               },
               appointmentTime: {
-                type: 'string',
+                type: SchemaType.STRING,
                 description: 'The time in 24-hour HH:MM format.',
               },
-              customerName: { type: 'string' },
-              customerPhone: { type: 'string' },
+              customerName: { type: SchemaType.STRING },
+              customerPhone: { type: SchemaType.STRING },
             },
             required: ['service', 'appointmentDate', 'appointmentTime', 'customerName'],
           },
@@ -176,9 +173,10 @@ function getGenerativeModel(botSettings: BotSettings) {
     model: 'gemini-1.5-flash',
     systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your primary goal is to book appointments.
 CRITICAL RULES:
-1. GATHER ALL INFO: You MUST NOT call 'bookAppointment' until you have: the service, the date, the time, AND the customer's name.
-2. VERIFY HOURS: Check the requested time against business hours before booking.
-3. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. Convert all dates to 'YYYY-MM-DD' and times to 'HH:MM' format.
+1. TIME ZONE: Assume the user is in the '${timeZone}' time zone for all calculations.
+2. GATHER ALL INFO: You MUST NOT call 'bookAppointment' until you have: the service, the date, the time, AND the customer's name.
+3. VERIFY HOURS: Check the requested time against business hours before booking.
+4. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. Convert all dates to 'YYYY-MM-DD' and times to 'HH:MM' format.
 
 SALON INFORMATION:
 - Services: ${botSettings.services}
