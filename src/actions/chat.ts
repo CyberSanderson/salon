@@ -5,7 +5,7 @@ import {
   Tool,
   Content,
   Part,
-  SchemaType, // The correct enum for schema types
+  SchemaType,
 } from '@google/generative-ai'
 import { createClient } from '@/utils/supabase/server'
 import {
@@ -33,9 +33,8 @@ interface ActionResponse {
 
 // --- ACTION 1: For the secure, authenticated dashboard preview ---
 export async function continueAuthenticatedConversation(
-  payload: { messages: Message[], timeZone?: string }
+  messages: Message[]
 ): Promise<ActionResponse> {
-  const { messages, timeZone } = payload;
   const supabase = createClient()
   const {
     data: { user },
@@ -54,7 +53,7 @@ export async function continueAuthenticatedConversation(
       throw new Error('Bot settings not found.')
     }
 
-    const model = getGenerativeModel(botSettings, timeZone)
+    const model = getGenerativeModel(botSettings)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
 
@@ -82,13 +81,9 @@ export async function continueAuthenticatedConversation(
 
 // --- ACTION 2: For the public, embeddable chat widget ---
 export async function continuePublicConversation(
-  payload: { messages: Message[], botId?: string, timeZone?: string }
+  messages: Message[],
+  botId: string
 ): Promise<ActionResponse> {
-  const { messages, botId, timeZone } = payload
-  if (!botId) {
-    throw new Error('Bot ID is required for public conversation.')
-  }
-  
   const supabaseAdmin = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -109,7 +104,7 @@ export async function continuePublicConversation(
       throw new Error('Bot settings not found for the provided botId.')
     }
 
-    const model = getGenerativeModel(botSettings, timeZone)
+    const model = getGenerativeModel(botSettings)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
 
@@ -137,7 +132,7 @@ export async function continuePublicConversation(
 }
 
 // --- HELPER FUNCTIONS ---
-function getGenerativeModel(botSettings: BotSettings, timeZone: string = 'UTC') {
+function getGenerativeModel(botSettings: BotSettings) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
   const tools: Tool[] = [
@@ -170,17 +165,18 @@ function getGenerativeModel(botSettings: BotSettings, timeZone: string = 'UTC') 
   ]
 
   return genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your primary goal is to book appointments.
+    // --- THIS IS THE DEFINITIVE FIX ---
+    // We are now pinning to the latest, most powerful, and stable Flash model.
+    model: 'gemini-2.5-flash',
+    systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your goal is to book appointments and answer questions based ONLY on the salon information provided.
 CRITICAL RULES:
-1. TIME ZONE: Assume the user is in the '${timeZone}' time zone for all calculations.
-2. GATHER ALL INFO: You MUST NOT call 'bookAppointment' until you have: the service, the date, the time, AND the customer's name.
-3. VERIFY HOURS: Check the requested time against business hours before booking.
-4. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. Convert all dates to 'YYYY-MM-DD' and times to 'HH:MM' format.
+1. GATHER ALL INFO: You MUST NOT call the 'bookAppointment' tool until you have collected ALL required information: the service, the date, the time, AND the customer's name.
+2. VERIFY BUSINESS HOURS: Before calling the tool, you MUST check the requested time against the "Business Hours". If it's outside these hours, inform the user and ask for a different time.
+3. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. You must convert all dates (e.g., "next Tuesday") into 'YYYY-MM-DD' format and all times (e.g., "2pm") into 24-hour 'HH:MM' format.
 
 SALON INFORMATION:
-- Services: ${botSettings.services}
-- Hours: ${botSettings.hours}`,
+- Services and Prices: ${botSettings.services}
+- Business Hours: ${botSettings.hours}`,
     tools: tools,
   })
 }
