@@ -25,62 +25,119 @@ type BotSettings = {
   welcome_message: string
 }
 
+// The action now accepts a single payload object
+interface ConversationPayload {
+  messages: Message[]
+  botId?: string
+  timeZone?: string
+}
+
 interface ActionResponse {
   history: Content[]
   error?: string
 }
 
-// The actions now accept the timeZone as part of a single payload object
-export async function continueAuthenticatedConversation(payload: { messages: Message[], timeZone: string }): Promise<ActionResponse> {
-  const { messages, timeZone } = payload;
+// --- ACTION 1: For the secure, authenticated dashboard preview ---
+export async function continueAuthenticatedConversation(
+  payload: ConversationPayload
+): Promise<ActionResponse> {
+  const { messages, timeZone } = payload
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) { throw new Error('User not authenticated.') }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User not authenticated.')
+  }
 
   try {
-    const { data: botSettings } = await supabase.from('bots').select('*').eq('user_id', user.id).single()
-    if (!botSettings) { throw new Error('Bot settings not found.') }
+    const { data: botSettings } = await supabase
+      .from('bots')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+    if (!botSettings) {
+      throw new Error('Bot settings not found.')
+    }
 
     const model = getGenerativeModel(botSettings, timeZone)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
+
     const functionCalls = result.response.functionCalls()
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookAppointment(functionCall.args as AppointmentDetails)
-        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        const toolResult = await bookAppointment(
+          functionCall.args as AppointmentDetails
+        )
+        await chat.sendMessage([
+          { functionResponse: { name: 'bookAppointment', response: toolResult } },
+        ])
       }
     }
+
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continueAuthenticatedConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
+    console.error('Error in continueAuthenticatedConversation:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
 
-export async function continuePublicConversation(payload: { messages: Message[], botId: string, timeZone: string }): Promise<ActionResponse> {
-  const { messages, botId, timeZone } = payload;
-  const supabaseAdmin = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { cookies: { get: (name: string) => cookies().get(name)?.value } });
+// --- ACTION 2: For the public, embeddable chat widget ---
+export async function continuePublicConversation(
+  payload: ConversationPayload
+): Promise<ActionResponse> {
+  const { messages, botId, timeZone } = payload
+  if (!botId) {
+    throw new Error('Bot ID is required for public conversation.')
+  }
+  
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get: (name: string) => cookies().get(name)?.value,
+      },
+    }
+  )
 
   try {
-    const { data: botSettings } = await supabaseAdmin.from('bots').select('*').eq('user_id', botId).single()
-    if (!botSettings) { throw new Error('Bot settings not found.') }
+    const { data: botSettings } = await supabaseAdmin
+      .from('bots')
+      .select('*')
+      .eq('user_id', botId)
+      .single()
+    if (!botSettings) {
+      throw new Error('Bot settings not found for the provided botId.')
+    }
 
     const model = getGenerativeModel(botSettings, timeZone)
     const chat = model.startChat({ history: getHistory(messages, botSettings) })
     const result = await chat.sendMessage(messages[messages.length - 1].parts)
+
     const functionCalls = result.response.functionCalls()
     if (functionCalls && functionCalls.length > 0) {
       const functionCall = functionCalls[0]
       if (functionCall.name === 'bookAppointment') {
-        const toolResult = await bookPublicAppointment(functionCall.args as AppointmentDetails, botId)
-        await chat.sendMessage([{ functionResponse: { name: 'bookAppointment', response: toolResult } }])
+        const toolResult = await bookPublicAppointment(
+          functionCall.args as AppointmentDetails,
+          botId
+        )
+        await chat.sendMessage([
+          { functionResponse: { name: 'bookAppointment', response: toolResult } },
+        ])
       }
     }
+
     return { history: await chat.getHistory() }
   } catch (error) {
-    console.error('Error in continuePublicConversation:', { errorMessage: error instanceof Error ? error.message : String(error) })
+    console.error('Error in continuePublicConversation:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
     return { history: [], error: 'An internal error occurred.' }
   }
 }
@@ -88,6 +145,7 @@ export async function continuePublicConversation(payload: { messages: Message[],
 // --- HELPER FUNCTIONS ---
 function getGenerativeModel(botSettings: BotSettings, timeZone: string = 'UTC') {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+
   const tools: Tool[] = [
     {
       functionDeclarations: [
@@ -120,16 +178,15 @@ function getGenerativeModel(botSettings: BotSettings, timeZone: string = 'UTC') 
   return genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     systemInstruction: `You are a receptionist for "${botSettings.salon_name}". Your primary goal is to book appointments.
-    
-    CRITICAL RULES:
-    1. TIME ZONE AWARENESS: You MUST assume the user is in the '${timeZone}' time zone. All date and time calculations you perform MUST be relative to this time zone.
-    2. GATHER ALL INFO: You MUST NOT call 'bookAppointment' until you have: the service, the date, the time, AND the customer's name.
-    3. VERIFY HOURS: Check the requested time against business hours before booking.
-    4. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. Convert all dates to 'YYYY-MM-DD' and times to 'HH:MM' format, based on the user's '${timeZone}' time zone.
+CRITICAL RULES:
+1. TIME ZONE: Assume the user is in the '${timeZone}' time zone for all calculations.
+2. GATHER ALL INFO: You MUST NOT call 'bookAppointment' until you have: the service, the date, the time, AND the customer's name.
+3. VERIFY HOURS: Check the requested time against business hours before booking.
+4. FORMAT DATE & TIME: Today's date is ${new Date().toISOString()}. Convert all dates to 'YYYY-MM-DD' and times to 'HH:MM' format.
 
-    SALON INFORMATION:
-    - Services: ${botSettings.services}
-    - Hours: ${botSettings.hours}`,
+SALON INFORMATION:
+- Services: ${botSettings.services}
+- Hours: ${botSettings.hours}`,
     tools: tools,
   })
 }

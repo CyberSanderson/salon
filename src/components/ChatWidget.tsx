@@ -46,10 +46,14 @@ export default function ChatWidget({
     setIsLoading(true);
 
     try {
-      // Create the payload object to send to the server actions
-      const payload = { messages: newMessages, botId };
+      // --- THIS IS THE CRITICAL FIX ---
+      // Get the user's local time zone from their browser
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
-      // Call the correct server action with the single payload object
+      // Create the payload object that includes the new timeZone property
+      const payload = { messages: newMessages, botId, timeZone };
+      
+      // Call the correct server action with the single, complete payload object
       const result = botId
         ? await continuePublicConversation(payload)
         : await continueAuthenticatedConversation(payload);
