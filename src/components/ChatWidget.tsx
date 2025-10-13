@@ -79,7 +79,6 @@ export default function ChatWidget({
     window.parent.postMessage('ariah-desk-minimize', '*');
   };
 
-  // This is the full-screen view for the public /book and /chat-embed pages
   if (botId) {
     return (
       <div className="w-full h-full bg-white flex flex-col">
@@ -113,7 +112,6 @@ export default function ChatWidget({
     )
   }
 
-  // This is the dashboard preview with the floating bubble.
   return (
     <>
       {isDashboardOpen && (
