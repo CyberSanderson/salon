@@ -105,7 +105,7 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
           
           <div className="mt-12 max-w-3xl mx-auto h-[32rem] bg-white rounded-lg shadow-2xl overflow-hidden border">
              <iframe 
-                src="https://www.youtube.com/embed/FpOnNPxhiBM?rel=0&showinfo=0"
+                src="https://www.youtube.com/embed/Rhk4EV6U954?rel=0&showinfo=0"
                 title="Ariah Desk Product Demo" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
