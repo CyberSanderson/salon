@@ -10,7 +10,6 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
   }
 
-  // Determine the correct link for the "Get Started" buttons
   const getStartedLink = isLoggedIn ? '/dashboard' : '/login'
 
   return (
@@ -91,7 +90,9 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
         </div>
       </motion.section>
 
+      {/* --- THIS IS THE UPDATED SECTION --- */}
       <motion.section
+        id="features"
         variants={sectionVariants}
         initial="hidden"
         whileInView="visible"
@@ -99,16 +100,18 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
         className="py-20 bg-gray-50"
       >
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-gray-800">Your Salon&apos;s 24/7 Automated Receptionist</h2>
-          <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Free up your time and watch your calendar fill itself.</p>
-          <div className="mt-12 max-w-lg mx-auto">
-            <Image
-              src="/app-visual.png"
-              alt="A demonstration of the Ariah Desk interface"
-              width={400}
-              height={800}
-              className="rounded-lg shadow-2xl border"
-            />
+          <h2 className="text-4xl font-bold text-gray-800">See Ariah Desk in Action</h2>
+          <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Watch our 2-minute demo to see how our AI assistant can transform your booking process.</p>
+          
+          <div className="mt-12 max-w-3xl mx-auto h-[32rem] bg-white rounded-lg shadow-2xl overflow-hidden border">
+             <iframe 
+                src="https://www.youtube.com/embed/FpOnNPxhiBM?rel=0&showinfo=0"
+                title="Ariah Desk Product Demo" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+                className="w-full h-full"
+            ></iframe>
           </div>
         </div>
       </motion.section>
@@ -177,7 +180,7 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
                  <li className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clipRule="evenodd" /></svg><span>Monthly Bot Optimization</span></li>
                  <li className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.052-.143Z" clipRule="evenodd" /></svg><span>VIP Priority Support</span></li>
               </ul>
-              <a href="https://calendar.app.google/TFsMHWEf9CPzc7hv8" target="_blank" rel="noopener noreferrer" className="mt-8 block w-full px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors text-center">Book a Free Consultation</a>
+              <a href="https://calendar.app.google.com/TFsMHWEf9CPzc7hv8" target="_blank" rel="noopener noreferrer" className="mt-8 block w-full px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors text-center">Book a Free Consultation</a>
             </div>
             <div className="p-8 bg-white rounded-lg border shadow-md flex flex-col">
               <h3 className="text-2xl font-semibold text-gray-800">Free</h3>
@@ -201,7 +204,7 @@ export default function HomePageClient({ isLoggedIn }: { isLoggedIn: boolean }) 
         className="py-20 bg-teal-50"
       >
         <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center gap-12">
+           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="w-48 h-48 md:w-64 md:h-64 rounded-full bg-white shadow-lg flex-shrink-0 overflow-hidden">
               <Image src="/sanderson.png" alt="Sande, Founder of Ariah Desk" width={256} height={256} className="w-full h-full object-cover" />
             </div>
